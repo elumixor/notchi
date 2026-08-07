@@ -175,10 +175,15 @@ struct ExpandedPanelView: View {
     @Binding var isActivityCollapsed: Bool
     @Binding var hoveredSessionId: String?
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
+    @Environment(\.panelScale) private var panelScale
 
     static let compactHeaderClearance: CGFloat = 0
     static let compactFeedMaxHeight: CGFloat = 320
     static let defaultFeedMaxHeight: CGFloat = 200
+
+    static func feedMaxHeight(mode: ExpandedPanelMode, panelScale: CGFloat) -> CGFloat {
+        (mode == .compact ? compactFeedMaxHeight : defaultFeedMaxHeight) * panelScale
+    }
 
     init(
         sessionStore: SessionStore,
@@ -702,7 +707,7 @@ struct ExpandedPanelView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxHeight: panelMode == .compact ? Self.compactFeedMaxHeight : Self.defaultFeedMaxHeight)
+                        .frame(maxHeight: Self.feedMaxHeight(mode: panelMode, panelScale: panelScale))
                         .onAppear {
                             if effectiveSession?.pendingQuestions.isEmpty == false {
                                 scrollToQuestionPrompt(proxy: proxy)

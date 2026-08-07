@@ -231,6 +231,39 @@ final class NotchContentViewTests: XCTestCase {
 
 
 
+    func testFeedGrowsWithPanelSoTheGapAboveTheSpinnerStaysProportional() {
+        let standard = ExpandedPanelView.feedMaxHeight(mode: .full, panelScale: 1)
+        let large = ExpandedPanelView.feedMaxHeight(mode: .full, panelScale: 1.25)
+
+        XCTAssertEqual(standard, ExpandedPanelView.defaultFeedMaxHeight)
+        XCTAssertEqual(large, 250)
+    }
+
+    func testCompactFeedAlsoGrowsWithPanel() {
+        XCTAssertEqual(
+            ExpandedPanelView.feedMaxHeight(mode: .compact, panelScale: 1.25),
+            400
+        )
+    }
+
+    func testUsageRowsStackInOneColumnWhenPanelIsEnlarged() {
+        XCTAssertFalse(
+            UsageDetailView.usesTwoColumnLayout(rowCount: 3, hideGrassIsland: false, panelScale: 1.25)
+        )
+    }
+
+    func testUsageRowsUseTwoColumnsAtStandardScaleToFitThreeRows() {
+        XCTAssertTrue(
+            UsageDetailView.usesTwoColumnLayout(rowCount: 3, hideGrassIsland: false, panelScale: 1)
+        )
+        XCTAssertFalse(
+            UsageDetailView.usesTwoColumnLayout(rowCount: 2, hideGrassIsland: false, panelScale: 1)
+        )
+        XCTAssertFalse(
+            UsageDetailView.usesTwoColumnLayout(rowCount: 3, hideGrassIsland: true, panelScale: 1)
+        )
+    }
+
     func testSpritesStayAtNativeSizeWhenPanelIsNotEnlarged() {
         XCTAssertEqual(SpriteLayout.spriteScale(panelScale: 1), 1)
     }

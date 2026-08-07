@@ -14,6 +14,7 @@ struct UsageDetailView: View {
 
     @State private var selectedTab: UsageTab
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
+    @Environment(\.panelScale) private var panelScale
 
     init(
         claudeUsage: ClaudeUsageService,
@@ -137,6 +138,11 @@ struct UsageDetailView: View {
         }
     }
 
+    static func usesTwoColumnLayout(rowCount: Int, hideGrassIsland: Bool, panelScale: CGFloat) -> Bool {
+        guard panelScale <= 1 else { return false }
+        return rowCount >= 3 && !hideGrassIsland
+    }
+
     private var usageRowCount: Int {
         periods.count + (extraUsage == nil ? 0 : 1) + (codexCreditsUSD == nil ? 0 : 1)
     }
@@ -164,7 +170,11 @@ struct UsageDetailView: View {
                 .padding(.bottom, 2)
 
             if case .provider = resolvedTab {
-                if usageRowCount >= 3 && !hideGrassIsland {
+                if Self.usesTwoColumnLayout(
+                    rowCount: usageRowCount,
+                    hideGrassIsland: hideGrassIsland,
+                    panelScale: panelScale
+                ) {
                     LazyVGrid(
                         columns: [
                             GridItem(.flexible(), spacing: 14, alignment: .topLeading),

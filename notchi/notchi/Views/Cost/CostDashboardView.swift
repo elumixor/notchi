@@ -50,7 +50,11 @@ struct CostDashboardView: View {
     var sizingPeerReports: [DailyCostReport] = []
     var combinesProviders = false
 
+    @Environment(\.panelScale) private var panelScale
     @State private var selected: DailyCostReport.DayEntry?
+
+    private var scaledChartHeight: CGFloat { Self.chartHeight * panelScale }
+    private var scaledStatRowHeight: CGFloat { Self.statRowHeight * panelScale }
 
     private func currentEntry(_ r: DailyCostReport) -> DailyCostReport.DayEntry? {
         selected.flatMap { s in r.entries.first { $0.id == s.id } }
@@ -73,7 +77,7 @@ struct CostDashboardView: View {
                     .panelFont(size: 13, weight: .semibold)
                     .foregroundStyle(TerminalColors.secondaryText)
                     .frame(maxWidth: .infinity)
-                    .frame(height: Self.statRowHeight + Self.sectionSpacing + Self.chartHeight)
+                    .frame(height: scaledStatRowHeight + Self.sectionSpacing + scaledChartHeight)
             }
         }
     }
@@ -135,7 +139,7 @@ struct CostDashboardView: View {
                 }
             }
         }
-        .frame(height: Self.statRowHeight)
+        .frame(height: scaledStatRowHeight)
     }
 
     private static let statRowHeight: CGFloat = 34
@@ -272,7 +276,7 @@ struct CostDashboardView: View {
     }
 
     @ViewBuilder private func chart(_ r: DailyCostReport) -> some View {
-        let gap = (r.entries.map(\.costUSD).max() ?? 0) * Self.segmentGapPixels / Self.chartHeight
+        let gap = (r.entries.map(\.costUSD).max() ?? 0) * Self.segmentGapPixels / scaledChartHeight
         Chart(r.entries) { e in
             ForEach(Self.stackedSegments(e, gap: gap)) { s in
                 BarMark(
@@ -287,7 +291,7 @@ struct CostDashboardView: View {
         .chartYAxis(.hidden)
         .chartLegend(.hidden)
         .animation(.easeOut(duration: 0.15), value: selected)
-        .frame(height: Self.chartHeight)
+        .frame(height: scaledChartHeight)
         .chartOverlay { proxy in
             GeometryReader { geo in
                 Rectangle()
