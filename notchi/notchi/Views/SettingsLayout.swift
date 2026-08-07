@@ -18,14 +18,20 @@ enum SettingsLayout {
     static var pickerInset: CGFloat { 6 * scale }
     static var pickerOptionHorizontalPadding: CGFloat { 10 * scale }
     static var pickerOptionVerticalPadding: CGFloat { 5 * scale }
-    static var pickerRowHeight: CGFloat { 28 * scale }
-    static var pickerRowSpacing: CGFloat { 4 * scale }
+    static var pickerRowHeight: CGFloat { basePickerRowHeight * scale }
+    static var pickerRowSpacing: CGFloat { basePickerRowSpacing * scale }
 
+    static let basePickerRowHeight: CGFloat = 28
+    static let basePickerRowSpacing: CGFloat = 4
     static let pickerMaxVisibleRows = 6
 
-    static func pickerViewportHeight(rowCount: Int) -> CGFloat? {
+    static func pickerViewportHeight(rowCount: Int, scale: CGFloat) -> CGFloat? {
         guard rowCount > pickerMaxVisibleRows else { return nil }
-        return CGFloat(pickerMaxVisibleRows) * pickerRowHeight
-            + CGFloat(pickerMaxVisibleRows - 1) * pickerRowSpacing
+        return (CGFloat(pickerMaxVisibleRows) * basePickerRowHeight
+            + CGFloat(pickerMaxVisibleRows - 1) * basePickerRowSpacing) * scale
+    }
+
+    static func pickerViewportHeight(rowCount: Int) -> CGFloat? {
+        pickerViewportHeight(rowCount: rowCount, scale: scale)
     }
 }

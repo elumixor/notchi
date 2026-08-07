@@ -351,29 +351,28 @@ final class NotchContentViewTests: XCTestCase {
     }
 
     func testShortPickerIsUnconstrainedSoItDoesNotReserveEmptySpace() {
-        XCTAssertNil(SettingsLayout.pickerViewportHeight(rowCount: NotchSlotContent.allCases.count))
-        XCTAssertNil(SettingsLayout.pickerViewportHeight(rowCount: SettingsLayout.pickerMaxVisibleRows))
+        XCTAssertNil(
+            SettingsLayout.pickerViewportHeight(rowCount: NotchSlotContent.allCases.count, scale: 1)
+        )
+        XCTAssertNil(
+            SettingsLayout.pickerViewportHeight(rowCount: SettingsLayout.pickerMaxVisibleRows, scale: 1)
+        )
     }
 
-    func testOverlongPickerIsCappedToTheVisibleRowLimit() {
-        SettingsLayout.scale = 1
-        defer { SettingsLayout.scale = 1 }
+    func testOverlongPickerIsCappedToTheVisibleRowLimit() throws {
+        let capped = try XCTUnwrap(SettingsLayout.pickerViewportHeight(rowCount: 20, scale: 1))
+        let firstOverflowing = try XCTUnwrap(SettingsLayout.pickerViewportHeight(rowCount: 7, scale: 1))
 
-        let capped = SettingsLayout.pickerViewportHeight(rowCount: 20)
-
-        XCTAssertEqual(capped, 6 * 28 + 5 * 4)
-        XCTAssertEqual(capped, SettingsLayout.pickerViewportHeight(rowCount: 7))
+        XCTAssertEqual(capped, 6 * SettingsLayout.basePickerRowHeight + 5 * SettingsLayout.basePickerRowSpacing)
+        XCTAssertEqual(capped, firstOverflowing)
     }
 
-    func testCappedPickerViewportGrowsWithThePanel() {
-        SettingsLayout.scale = 1
-        let standard = SettingsLayout.pickerViewportHeight(rowCount: 20)
+    func testCappedPickerViewportGrowsWithThePanel() throws {
+        let largeScale = ExpandedPanelScale.large.multiplier
+        let standard = try XCTUnwrap(SettingsLayout.pickerViewportHeight(rowCount: 20, scale: 1))
+        let large = try XCTUnwrap(SettingsLayout.pickerViewportHeight(rowCount: 20, scale: largeScale))
 
-        SettingsLayout.scale = ExpandedPanelScale.large.multiplier
-        let large = SettingsLayout.pickerViewportHeight(rowCount: 20)
-        SettingsLayout.scale = 1
-
-        XCTAssertEqual(large!, standard! * ExpandedPanelScale.large.multiplier, accuracy: 0.001)
+        XCTAssertEqual(large, standard * largeScale, accuracy: 0.001)
     }
 
 
