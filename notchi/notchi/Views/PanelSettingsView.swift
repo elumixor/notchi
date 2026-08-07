@@ -119,7 +119,7 @@ struct PanelSettingsView: View {
                     aboutSection
                 }
             }
-            .scrollIndicators(.hidden)
+            .scrollIndicators(.never)
 
             Spacer()
 
