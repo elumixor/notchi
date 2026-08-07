@@ -26,6 +26,14 @@ enum NotchConstants {
     }
 }
 
+enum PanelTypography {
+    static let enlargedFontScale: CGFloat = 1.125
+
+    static func fontScale(panelScale: CGFloat) -> CGFloat {
+        panelScale > 1 ? enlargedFontScale : 1
+    }
+}
+
 private struct PanelScaleKey: EnvironmentKey {
     static let defaultValue: CGFloat = 1
 }
@@ -56,7 +64,8 @@ struct PanelFontModifier: ViewModifier {
     let transform: (Font) -> Font
 
     func body(content: Content) -> some View {
-        content.font(transform(.system(size: size * panelScale, weight: weight, design: design)))
+        let scaledSize = size * PanelTypography.fontScale(panelScale: panelScale)
+        return content.font(transform(.system(size: scaledSize, weight: weight, design: design)))
     }
 }
 

@@ -211,25 +211,17 @@ final class NotchContentViewTests: XCTestCase {
         )
     }
 
-    func testPanelSizeAtStandardScaleMatchesLegacyFixedSize() {
-        let size = NotchConstants.panelSize(scale: 1)
-
-        XCTAssertEqual(size.height, NotchConstants.expandedPanelSize.height)
-        XCTAssertEqual(
-            size.width,
-            NotchConstants.expandedPanelSize.width + NotchConstants.expandedPanelHorizontalPadding
-        )
+    func testTextIsUnscaledWhenPanelIsNotEnlarged() {
+        XCTAssertEqual(PanelTypography.fontScale(panelScale: 1), 1)
     }
 
-    func testPanelSizeScalesEverythingExceptTheOuterChrome() {
-        let scale: CGFloat = 1.5
+    func testTextGrowsMoreGentlyThanThePanelSoLargeFitsMoreContent() {
+        let panelScale: CGFloat = 1.25
+        let fontScale = PanelTypography.fontScale(panelScale: panelScale)
 
-        let size = NotchConstants.panelSize(scale: scale)
-
-        XCTAssertEqual(size.height, (450 - 24) * scale + 24, accuracy: 0.001)
+        XCTAssertLessThan(fontScale, panelScale)
+        XCTAssertEqual(13 * fontScale, 14.625, accuracy: 0.001)
     }
-
-
 
     func testFeedGrowsWithPanelSoTheGapAboveTheSpinnerStaysProportional() {
         let standard = ExpandedPanelView.feedMaxHeight(mode: .full, panelScale: 1)
@@ -275,5 +267,25 @@ final class NotchContentViewTests: XCTestCase {
         XCTAssertEqual(size.truncatingRemainder(dividingBy: 1), 0)
         XCTAssertEqual((size * 2).truncatingRemainder(dividingBy: 1), 0)
     }
+
+    func testPanelSizeAtStandardScaleMatchesLegacyFixedSize() {
+        let size = NotchConstants.panelSize(scale: 1)
+
+        XCTAssertEqual(size.height, NotchConstants.expandedPanelSize.height)
+        XCTAssertEqual(
+            size.width,
+            NotchConstants.expandedPanelSize.width + NotchConstants.expandedPanelHorizontalPadding
+        )
+    }
+
+    func testPanelSizeScalesEverythingExceptTheOuterChrome() {
+        let scale: CGFloat = 1.5
+
+        let size = NotchConstants.panelSize(scale: scale)
+
+        XCTAssertEqual(size.height, (450 - 24) * scale + 24, accuracy: 0.001)
+    }
+
+
 
 }

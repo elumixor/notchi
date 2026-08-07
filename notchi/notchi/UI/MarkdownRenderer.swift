@@ -79,7 +79,7 @@ struct MarkdownText: View {
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )
         return SwiftUI.Text(attributed ?? AttributedString(content))
-            .font(.system(size: fontSize * panelScale))
+            .font(.system(size: fontSize * PanelTypography.fontScale(panelScale: panelScale)))
             .foregroundColor(baseColor)
     }
 }

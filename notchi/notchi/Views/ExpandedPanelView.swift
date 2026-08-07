@@ -48,7 +48,7 @@ private struct MorphingText: View {
 
     var body: some View {
         let baseText: Text = Text(displayedText)
-            .font(.system(size: fontSize * panelScale, weight: fontWeight))
+            .font(.system(size: fontSize * PanelTypography.fontScale(panelScale: panelScale), weight: fontWeight))
 
         return baseText
             .foregroundColor(color)
