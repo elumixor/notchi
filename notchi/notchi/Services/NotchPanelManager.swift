@@ -144,7 +144,9 @@ final class NotchPanelManager {
         compactNotchRect = Self.makeCompactNotchRect(notchSize: newNotchSize, notchRect: notchRect)
 
         visibleScreenHeight = screen.visibleFrame.height
-        panelScale = AppSettings.expandedPanelScale.resolved(visibleScreenHeight: visibleScreenHeight).multiplier
+        panelScale = AppSettings.expandedPanelScale(in: userDefaults)
+            .resolved(visibleScreenHeight: visibleScreenHeight)
+            .multiplier
         SettingsLayout.scale = panelScale
 
         let panelSize = NotchConstants.panelSize(scale: panelScale)

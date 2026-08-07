@@ -257,10 +257,12 @@ struct AppSettings {
         }
     }
 
+    static func expandedPanelScale(in defaults: UserDefaults) -> ExpandedPanelScale {
+        ExpandedPanelScale(rawValue: defaults.string(forKey: expandedPanelScaleKey) ?? "") ?? .automatic
+    }
+
     static var expandedPanelScale: ExpandedPanelScale {
-        get {
-            ExpandedPanelScale(rawValue: UserDefaults.standard.string(forKey: expandedPanelScaleKey) ?? "") ?? .automatic
-        }
+        get { expandedPanelScale(in: .standard) }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: expandedPanelScaleKey) }
     }
 
