@@ -8,7 +8,8 @@ private let logger = Logger(subsystem: "com.ruban.notchi", category: "AppDelegat
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
     private var notchPanel: NotchPanel?
-    private let windowHeight: CGFloat = 500
+    private let windowHeightSlack: CGFloat = 50
+    private var observedPanelScale = AppSettings.expandedPanelScale
     private let integrationCoordinator = IntegrationCoordinator.shared
     private let globalShortcutService = GlobalShortcutService.shared
     private var minimizeShortcutMonitor: Any?
@@ -151,9 +152,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
             queue: nil
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
+                self?.repositionWindowIfPanelScaleChanged()
                 self?.refreshPanelTrackingAreas()
             }
         }
+    }
+
+    private func repositionWindowIfPanelScaleChanged() {
+        let scale = AppSettings.expandedPanelScale
+        guard scale != observedPanelScale else { return }
+        observedPanelScale = scale
+        repositionWindow()
     }
 
     @objc private func refreshPanelTrackingAreas() {
@@ -192,6 +201,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
 
     private func windowFrame(for screen: NSScreen) -> NSRect {
         let screenFrame = screen.frame
+        let windowHeight = NotchPanelManager.shared.panelRect.height + windowHeightSlack
         return NSRect(
             x: screenFrame.origin.x,
             y: screenFrame.maxY - windowHeight,

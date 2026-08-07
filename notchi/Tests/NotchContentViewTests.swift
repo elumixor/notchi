@@ -210,4 +210,25 @@ final class NotchContentViewTests: XCTestCase {
             NotchContentView.islandOnlyPanelHeight
         )
     }
+
+    func testPanelSizeAtStandardScaleMatchesLegacyFixedSize() {
+        let size = NotchConstants.panelSize(scale: 1)
+
+        XCTAssertEqual(size.height, NotchConstants.expandedPanelSize.height)
+        XCTAssertEqual(
+            size.width,
+            NotchConstants.expandedPanelSize.width + NotchConstants.expandedPanelHorizontalPadding
+        )
+    }
+
+    func testPanelSizeScalesEverythingExceptTheOuterChrome() {
+        let scale: CGFloat = 1.5
+
+        let size = NotchConstants.panelSize(scale: scale)
+
+        XCTAssertEqual(size.height, (450 - 24) * scale + 24, accuracy: 0.001)
+    }
+
+
+
 }

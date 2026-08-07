@@ -141,6 +141,27 @@ enum ExpandedPanelMode: String, CaseIterable {
     case islandOnly
 }
 
+enum ExpandedPanelScale: String, CaseIterable, Identifiable {
+    case standard
+    case large
+
+    var id: String { rawValue }
+
+    var multiplier: CGFloat {
+        switch self {
+        case .standard: 1
+        case .large: 1.25
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .standard: String(localized: "Standard")
+        case .large: String(localized: "Large")
+        }
+    }
+}
+
 struct AppSettings {
     static let hideSpriteWhenIdleKey = "hideSpriteWhenIdle"
     static let hideGrassIslandKey = "hideGrassIsland"
@@ -148,6 +169,7 @@ struct AppSettings {
     static let panelToggleShortcutKey = "panelToggleShortcut"
     static let notchLeftContentKey = "notchLeftContent"
     static let notchRightContentKey = "notchRightContent"
+    static let expandedPanelScaleKey = "expandedPanelScale"
 
     private static let notificationSoundKey = "notificationSound"
     private static let notificationSoundSelectionKey = "notificationSoundSelection"
@@ -224,6 +246,13 @@ struct AppSettings {
             let resolved: NotchSlotContent = other == newValue ? previous : .ring
             UserDefaults.standard.set(resolved.rawValue, forKey: otherKey)
         }
+    }
+
+    static var expandedPanelScale: ExpandedPanelScale {
+        get {
+            ExpandedPanelScale(rawValue: UserDefaults.standard.string(forKey: expandedPanelScaleKey) ?? "") ?? .standard
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: expandedPanelScaleKey) }
     }
 
     static var hideSpriteWhenIdle: Bool {

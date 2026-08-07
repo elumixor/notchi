@@ -3,6 +3,61 @@ import SwiftUI
 enum NotchConstants {
     static let expandedPanelSize = CGSize(width: 450, height: 450)
     static let expandedPanelHorizontalPadding: CGFloat = 19 * 2
+    static let expandedPanelContentInset: CGFloat = 48
+    static let expandedPanelVerticalInset: CGFloat = 24
+
+    static var expandedPanelContentWidth: CGFloat {
+        expandedPanelSize.width - expandedPanelContentInset
+    }
+
+    static func expandedContentHeight(notchHeight: CGFloat) -> CGFloat {
+        expandedPanelSize.height - notchHeight - expandedPanelVerticalInset
+    }
+
+    static var scalablePanelHeight: CGFloat {
+        expandedPanelSize.height - expandedPanelVerticalInset
+    }
+
+    static func panelSize(scale: CGFloat) -> CGSize {
+        CGSize(
+            width: expandedPanelContentWidth * scale + expandedPanelHorizontalPadding + expandedPanelContentInset,
+            height: scalablePanelHeight * scale + expandedPanelVerticalInset
+        )
+    }
+}
+
+private struct PanelScaleKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 1
+}
+
+extension EnvironmentValues {
+    var panelScale: CGFloat {
+        get { self[PanelScaleKey.self] }
+        set { self[PanelScaleKey.self] = newValue }
+    }
+}
+
+extension View {
+    func panelFont(
+        size: CGFloat,
+        weight: Font.Weight = .regular,
+        design: Font.Design = .default,
+        transform: @escaping (Font) -> Font = { $0 }
+    ) -> some View {
+        modifier(PanelFontModifier(size: size, weight: weight, design: design, transform: transform))
+    }
+}
+
+struct PanelFontModifier: ViewModifier {
+    @Environment(\.panelScale) private var panelScale
+    let size: CGFloat
+    let weight: Font.Weight
+    let design: Font.Design
+    let transform: (Font) -> Font
+
+    func body(content: Content) -> some View {
+        content.font(transform(.system(size: size * panelScale, weight: weight, design: design)))
+    }
 }
 
 extension Notification.Name {
@@ -389,8 +444,8 @@ struct NotchContentView: View {
     }
 
     private var grassHeight: CGFloat {
-        let expandedPanelHeight = NotchConstants.expandedPanelSize.height - notchSize.height - 24
-        return expandedPanelHeight * 0.3 + notchSize.height
+        let contentHeight = NotchConstants.expandedContentHeight(notchHeight: notchSize.height)
+        return (contentHeight * 0.3 + notchSize.height) * panelManager.panelScale
     }
 
     private var shouldShowBackButton: Bool {
@@ -400,12 +455,15 @@ struct NotchContentView: View {
     }
 
     static let islandOnlyPanelHeight: CGFloat = 155
+    static let expandedHeaderRowHeight: CGFloat = 36
 
     static func expandedPanelHeight(mode: ExpandedPanelMode, notchHeight: CGFloat) -> CGFloat {
         mode == .islandOnly
             ? islandOnlyPanelHeight
-            : NotchConstants.expandedPanelSize.height - notchHeight - 24
+            : NotchConstants.expandedContentHeight(notchHeight: notchHeight)
     }
+
+    private var panelScale: CGFloat { panelManager.panelScale }
 
     private var expandedPanelHeight: CGFloat {
         Self.expandedPanelHeight(mode: panelMode, notchHeight: notchSize.height)
@@ -472,9 +530,9 @@ struct NotchContentView: View {
                     }
                 }) {
                     Image(systemName: isActivityCollapsed ? "chevron.down" : "chevron.up")
-                        .font(.system(size: 12, weight: .medium))
+                        .panelFont(size: 12, weight: .medium)
                         .foregroundColor(.white.opacity(0.7))
-                        .padding(8)
+                        .padding(8 * panelScale)
                 }
                 .buttonStyle(.plain)
                 .offset(y: grassHeight - 30)
@@ -546,6 +604,9 @@ struct NotchContentView: View {
                     .frame(height: notchSize.height)
 
                 if isExpanded {
+                    Spacer()
+                        .frame(height: notchSize.height * (panelScale - 1))
+
                     ExpandedPanelView(
                         sessionStore: sessionStore,
                         usageService: usageService,
@@ -558,9 +619,10 @@ struct NotchContentView: View {
                         isActivityCollapsed: $isActivityCollapsed,
                         hoveredSessionId: $hoveredSessionId
                     )
+                    .environment(\.panelScale, panelScale)
                     .frame(
-                        width: NotchConstants.expandedPanelSize.width - 48,
-                        height: expandedPanelHeight
+                        width: NotchConstants.expandedPanelContentWidth * panelScale,
+                        height: expandedPanelHeight * panelScale
                     )
                     .transition(expandedChromeTransition)
                 }
@@ -570,9 +632,9 @@ struct NotchContentView: View {
                 HStack {
                     if shouldShowBackButton {
                         backButton
-                            .padding(.leading, 15)
+                            .padding(.leading, 15 * panelScale)
                     } else {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 8 * panelScale) {
                             PanelHeaderButton(
                                 sfSymbol: panelManager.isPinned ? "pin.fill" : "pin",
                                 action: { panelManager.togglePin() }
@@ -582,21 +644,26 @@ struct NotchContentView: View {
                                 action: toggleMute
                             )
                         }
-                        .padding(.leading, 12)
+                        .padding(.leading, 12 * panelScale)
                     }
                     Spacer()
                     headerButtons
                 }
-                .padding(.top, 4)
-                .padding(.horizontal, 8)
-                .frame(width: NotchConstants.expandedPanelSize.width - 48)
+                .padding(.top, 4 * panelScale)
+                .padding(.horizontal, 8 * panelScale)
+                .environment(\.panelScale, panelScale)
+                .frame(
+                    width: NotchConstants.expandedPanelContentWidth * panelScale,
+                    height: Self.expandedHeaderRowHeight * panelScale,
+                    alignment: .top
+                )
                 .transition(expandedHeaderTransition)
             }
         }
     }
 
     private var headerButtons: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 8 * panelScale) {
             if !showingPanelSettings {
                 PanelHeaderButton(
                     sfSymbol: "gearshape",
@@ -620,11 +687,11 @@ struct NotchContentView: View {
 
     private var backButton: some View {
         Button(action: goBack) {
-            HStack(spacing: 5) {
+            HStack(spacing: 5 * panelScale) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 11, weight: .semibold))
+                    .panelFont(size: 11, weight: .semibold)
                 Text("Back")
-                    .font(.system(size: 12, weight: .medium))
+                    .panelFont(size: 12, weight: .medium)
             }
             .foregroundColor(.white.opacity(0.7))
         }
