@@ -500,6 +500,7 @@ struct NotchContentView: View {
                         handoffProgress: spriteHandoffProgress,
                         isHandoffCollapsing: spriteHandoff?.direction == .collapsing
                     )
+                    .environment(\.panelScale, panelScale)
                     .frame(height: grassHeight, alignment: .bottom)
                     .opacity(shouldShowGrassIsland ? 1 : 0)
                     .animation(grassIslandOpacityAnimation, value: shouldShowGrassIsland)
@@ -519,6 +520,7 @@ struct NotchContentView: View {
                         selectGrassSession(sessionId)
                     }
                 )
+                .environment(\.panelScale, panelScale)
                 .frame(height: grassHeight, alignment: .bottom)
             }
         }

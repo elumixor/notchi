@@ -231,4 +231,16 @@ final class NotchContentViewTests: XCTestCase {
 
 
 
+    func testSpritesStayAtNativeSizeWhenPanelIsNotEnlarged() {
+        XCTAssertEqual(SpriteLayout.spriteScale(panelScale: 1), 1)
+    }
+
+    func testEnlargedSpriteSizeLandsOnWholePointsOnBothBackingScales() {
+        let size = SpriteLayout.size * SpriteLayout.spriteScale(panelScale: 1.25)
+
+        XCTAssertEqual(size, 72)
+        XCTAssertEqual(size.truncatingRemainder(dividingBy: 1), 0)
+        XCTAssertEqual((size * 2).truncatingRemainder(dividingBy: 1), 0)
+    }
+
 }
