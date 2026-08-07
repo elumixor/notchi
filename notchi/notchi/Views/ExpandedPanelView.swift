@@ -782,6 +782,8 @@ struct ExpandedPanelView: View {
 }
 
 struct PanelHeaderButton: View {
+    static let baseSize: CGFloat = 32
+
     let sfSymbol: String
     var showsIndicator: Bool = false
     let action: () -> Void
@@ -791,9 +793,9 @@ struct PanelHeaderButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: sfSymbol)
-                .panelFont(size: 16, weight: .medium)
+                .panelIcon(size: 16, weight: .medium)
                 .foregroundColor(.white.opacity(0.7))
-                .frame(width: 32 * panelScale, height: 32 * panelScale)
+                .frame(width: Self.baseSize * panelScale, height: Self.baseSize * panelScale)
                 .background(isHovered ? TerminalColors.hoverBackground : TerminalColors.subtleBackground)
                 .clipShape(Circle())
                 .overlay(alignment: .topTrailing) {

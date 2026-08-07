@@ -4,6 +4,7 @@ enum NotchConstants {
     static let expandedPanelSize = CGSize(width: 450, height: 450)
     static let expandedPanelHorizontalPadding: CGFloat = 19 * 2
     static let expandedPanelContentInset: CGFloat = 48
+    static let expandedPanelHitTestSlack: CGFloat = 48
     static let expandedPanelVerticalInset: CGFloat = 24
 
     static var expandedPanelContentWidth: CGFloat {
@@ -20,7 +21,7 @@ enum NotchConstants {
 
     static func panelSize(scale: CGFloat) -> CGSize {
         CGSize(
-            width: expandedPanelContentWidth * scale + expandedPanelHorizontalPadding + expandedPanelContentInset,
+            width: expandedPanelContentWidth * scale + expandedPanelHorizontalPadding + expandedPanelHitTestSlack,
             height: scalablePanelHeight * scale + expandedPanelVerticalInset
         )
     }
@@ -46,6 +47,10 @@ extension EnvironmentValues {
 }
 
 extension View {
+    func panelIcon(size: CGFloat, weight: Font.Weight = .regular) -> some View {
+        modifier(PanelIconModifier(size: size, weight: weight))
+    }
+
     func panelFont(
         size: CGFloat,
         weight: Font.Weight = .regular,
@@ -53,6 +58,16 @@ extension View {
         transform: @escaping (Font) -> Font = { $0 }
     ) -> some View {
         modifier(PanelFontModifier(size: size, weight: weight, design: design, transform: transform))
+    }
+}
+
+struct PanelIconModifier: ViewModifier {
+    @Environment(\.panelScale) private var panelScale
+    let size: CGFloat
+    let weight: Font.Weight
+
+    func body(content: Content) -> some View {
+        content.font(.system(size: size * panelScale, weight: weight))
     }
 }
 
@@ -464,7 +479,11 @@ struct NotchContentView: View {
     }
 
     static let islandOnlyPanelHeight: CGFloat = 155
-    static let expandedHeaderRowHeight: CGFloat = 36
+    static let expandedHeaderTopPadding: CGFloat = 4
+
+    static var expandedHeaderRowHeight: CGFloat {
+        PanelHeaderButton.baseSize + expandedHeaderTopPadding
+    }
 
     static func expandedPanelHeight(mode: ExpandedPanelMode, notchHeight: CGFloat) -> CGFloat {
         mode == .islandOnly
@@ -660,7 +679,7 @@ struct NotchContentView: View {
                     Spacer()
                     headerButtons
                 }
-                .padding(.top, 4 * panelScale)
+                .padding(.top, Self.expandedHeaderTopPadding * panelScale)
                 .padding(.horizontal, 8 * panelScale)
                 .environment(\.panelScale, panelScale)
                 .frame(

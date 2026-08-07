@@ -317,6 +317,14 @@ final class NotchContentViewTests: XCTestCase {
         XCTAssertEqual((size * 2).truncatingRemainder(dividingBy: 1), 0)
     }
 
+    func testHeaderRowIsTallEnoughForTheButtonItContains() {
+        XCTAssertEqual(
+            NotchContentView.expandedHeaderRowHeight,
+            PanelHeaderButton.baseSize + NotchContentView.expandedHeaderTopPadding
+        )
+        XCTAssertGreaterThanOrEqual(NotchContentView.expandedHeaderRowHeight, PanelHeaderButton.baseSize)
+    }
+
     func testPanelSizeAtStandardScaleMatchesLegacyFixedSize() {
         let size = NotchConstants.panelSize(scale: 1)
 

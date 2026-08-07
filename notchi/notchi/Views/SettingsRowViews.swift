@@ -30,7 +30,7 @@ struct SettingsRowView<Trailing: View>: View {
     var body: some View {
         HStack {
             Image(systemName: icon)
-                .panelFont(size: 12)
+                .panelIcon(size: 12)
                 .foregroundColor(TerminalColors.secondaryText)
                 .frame(width: 20 * panelScale)
 
