@@ -21,9 +21,11 @@ enum SettingsLayout {
     static var pickerRowHeight: CGFloat { 28 * scale }
     static var pickerRowSpacing: CGFloat { 4 * scale }
 
-    static func pickerViewportHeight(rowCount: Int, maxVisibleRows: Int = 6) -> CGFloat {
-        let visibleCount = min(rowCount, maxVisibleRows)
-        return CGFloat(visibleCount) * pickerRowHeight
-            + CGFloat(max(visibleCount - 1, 0)) * pickerRowSpacing
+    static let pickerMaxVisibleRows = 6
+
+    static func pickerViewportHeight(rowCount: Int) -> CGFloat? {
+        guard rowCount > pickerMaxVisibleRows else { return nil }
+        return CGFloat(pickerMaxVisibleRows) * pickerRowHeight
+            + CGFloat(pickerMaxVisibleRows - 1) * pickerRowSpacing
     }
 }

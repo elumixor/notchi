@@ -350,26 +350,30 @@ final class NotchContentViewTests: XCTestCase {
         )
     }
 
-    func testPickerViewportGrowsWithTheScaledRows() {
-        SettingsLayout.scale = 1
-        let standard = SettingsLayout.pickerViewportHeight(rowCount: 5)
-
-        SettingsLayout.scale = ExpandedPanelScale.large.multiplier
-        let large = SettingsLayout.pickerViewportHeight(rowCount: 5)
-        SettingsLayout.scale = 1
-
-        XCTAssertEqual(standard, 5 * 28 + 4 * 4)
-        XCTAssertEqual(large, standard * ExpandedPanelScale.large.multiplier, accuracy: 0.001)
+    func testShortPickerIsUnconstrainedSoItDoesNotReserveEmptySpace() {
+        XCTAssertNil(SettingsLayout.pickerViewportHeight(rowCount: NotchSlotContent.allCases.count))
+        XCTAssertNil(SettingsLayout.pickerViewportHeight(rowCount: SettingsLayout.pickerMaxVisibleRows))
     }
 
-    func testPickerViewportStopsGrowingPastTheVisibleRowLimit() {
+    func testOverlongPickerIsCappedToTheVisibleRowLimit() {
         SettingsLayout.scale = 1
         defer { SettingsLayout.scale = 1 }
 
-        XCTAssertEqual(
-            SettingsLayout.pickerViewportHeight(rowCount: 20),
-            SettingsLayout.pickerViewportHeight(rowCount: 6)
-        )
+        let capped = SettingsLayout.pickerViewportHeight(rowCount: 20)
+
+        XCTAssertEqual(capped, 6 * 28 + 5 * 4)
+        XCTAssertEqual(capped, SettingsLayout.pickerViewportHeight(rowCount: 7))
+    }
+
+    func testCappedPickerViewportGrowsWithThePanel() {
+        SettingsLayout.scale = 1
+        let standard = SettingsLayout.pickerViewportHeight(rowCount: 20)
+
+        SettingsLayout.scale = ExpandedPanelScale.large.multiplier
+        let large = SettingsLayout.pickerViewportHeight(rowCount: 20)
+        SettingsLayout.scale = 1
+
+        XCTAssertEqual(large!, standard! * ExpandedPanelScale.large.multiplier, accuracy: 0.001)
     }
 
 

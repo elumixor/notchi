@@ -71,24 +71,17 @@ struct SoundPickerView: View {
     }
 
     private var expandedPicker: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
-                addCustomSoundRow
+        SettingsPicker(rowCount: selector.rowCount(customSoundCount: customSounds.count)) {
+            addCustomSoundRow
 
-                ForEach(customSounds) { sound in
-                    customSoundRow(sound)
-                }
-
-                ForEach(NotificationSound.displayOrder, id: \.self) { sound in
-                    soundRow(sound)
-                }
+            ForEach(customSounds) { sound in
+                customSoundRow(sound)
             }
-            .padding(.vertical, SettingsLayout.pickerInset)
+
+            ForEach(NotificationSound.displayOrder, id: \.self) { sound in
+                soundRow(sound)
+            }
         }
-        .frame(height: selector.expandedHeight(customSoundCount: customSounds.count))
-        .background(TerminalColors.subtleBackground)
-        .cornerRadius(8)
-        .padding(.top, SettingsLayout.pickerInset)
     }
 
     private var addCustomSoundRow: some View {

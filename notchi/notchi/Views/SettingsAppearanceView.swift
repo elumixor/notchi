@@ -153,18 +153,11 @@ private struct NotchLayoutSettingsView: View {
     }
 
     private func picker(_ side: Side) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
-                ForEach(NotchSlotContent.allCases) { option in
-                    optionRow(side, option: option)
-                }
+        SettingsPicker(rowCount: NotchSlotContent.allCases.count) {
+            ForEach(NotchSlotContent.allCases) { option in
+                optionRow(side, option: option)
             }
-            .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: SettingsLayout.pickerViewportHeight(rowCount: NotchSlotContent.allCases.count))
-        .background(TerminalColors.subtleBackground)
-        .cornerRadius(8)
-        .padding(.top, SettingsLayout.pickerInset)
     }
 
     private func optionRow(_ side: Side, option: NotchSlotContent) -> some View {

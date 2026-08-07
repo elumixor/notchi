@@ -93,18 +93,11 @@ struct EmotionAnalysisSettingsView: View {
     }
 
     private var providerPicker: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
-                ForEach(EmotionAnalysisProvider.allCases) { option in
-                    providerRow(option)
-                }
+        SettingsPicker(rowCount: EmotionAnalysisProvider.allCases.count) {
+            ForEach(EmotionAnalysisProvider.allCases) { option in
+                providerRow(option)
             }
-            .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: SettingsLayout.pickerViewportHeight(rowCount: EmotionAnalysisProvider.allCases.count))
-        .background(TerminalColors.subtleBackground)
-        .cornerRadius(8)
-        .padding(.top, SettingsLayout.pickerInset)
     }
 
     private func providerRow(_ option: EmotionAnalysisProvider) -> some View {
@@ -348,18 +341,11 @@ struct EmotionAnalysisSettingsView: View {
     }
 
     private var modelPicker: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
-                ForEach(EmotionAnalysisModel.models(for: provider)) { option in
-                    modelRow(option)
-                }
+        SettingsPicker(rowCount: EmotionAnalysisModel.models(for: provider).count) {
+            ForEach(EmotionAnalysisModel.models(for: provider)) { option in
+                modelRow(option)
             }
-            .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: SettingsLayout.pickerViewportHeight(rowCount: EmotionAnalysisModel.models(for: provider).count))
-        .background(TerminalColors.subtleBackground)
-        .cornerRadius(8)
-        .padding(.top, SettingsLayout.pickerInset)
     }
 
     private func modelRow(_ option: EmotionAnalysisModel) -> some View {

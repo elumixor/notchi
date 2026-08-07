@@ -64,3 +64,31 @@ struct ToggleSwitch: View {
         .animation(.easeInOut(duration: 0.15), value: isOn)
     }
 }
+
+struct SettingsPicker<Content: View>: View {
+    let rowCount: Int
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        Group {
+            if let viewportHeight = SettingsLayout.pickerViewportHeight(rowCount: rowCount) {
+                ScrollView {
+                    rows
+                }
+                .frame(height: viewportHeight)
+            } else {
+                rows
+            }
+        }
+        .background(TerminalColors.subtleBackground)
+        .cornerRadius(8)
+        .padding(.top, SettingsLayout.pickerInset)
+    }
+
+    private var rows: some View {
+        VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
+            content()
+        }
+        .padding(.vertical, SettingsLayout.pickerInset)
+    }
+}
