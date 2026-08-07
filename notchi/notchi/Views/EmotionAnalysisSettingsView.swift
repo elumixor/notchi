@@ -62,7 +62,7 @@ struct EmotionAnalysisSettingsView: View {
 
     private var descriptionSection: some View {
         Text("Prompts are sent to the selected provider for emotion classification.")
-            .font(.system(size: 11))
+            .panelFont(size: 11)
             .foregroundColor(TerminalColors.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -76,10 +76,10 @@ struct EmotionAnalysisSettingsView: View {
                 SettingsRowView(icon: "switch.2", title: "Provider") {
                     HStack(spacing: 4) {
                         Text(provider.displayName)
-                            .font(.system(size: 11))
+                            .panelFont(size: 11)
                             .foregroundColor(TerminalColors.secondaryText)
                         Image(systemName: isProviderPickerExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 9))
+                            .panelFont(size: 9)
                             .foregroundColor(TerminalColors.dimmedText)
                     }
                 }
@@ -115,7 +115,7 @@ struct EmotionAnalysisSettingsView: View {
                     .frame(width: 6, height: 6)
 
                 Text(option.displayName)
-                    .font(.system(size: 11, weight: .medium))
+                    .panelFont(size: 11, weight: .medium)
                     .foregroundColor(provider == option ? TerminalColors.primaryText : TerminalColors.secondaryText)
                     .lineLimit(1)
 
@@ -133,12 +133,12 @@ struct EmotionAnalysisSettingsView: View {
     private var apiKeySection: some View {
         HStack {
             Image(systemName: "key")
-                .font(.system(size: 12))
+                .panelFont(size: 12)
                 .foregroundColor(TerminalColors.secondaryText)
                 .frame(width: 20)
 
             Text("API Key")
-                .font(.system(size: 12))
+                .panelFont(size: 12)
                 .foregroundColor(TerminalColors.primaryText)
                 .layoutPriority(1)
 
@@ -162,7 +162,7 @@ struct EmotionAnalysisSettingsView: View {
             ZStack(alignment: .leading) {
                 SecureField("", text: $apiKeyInput)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 11, design: .monospaced))
+                    .panelFont(size: 11, design: .monospaced)
                     .foregroundColor(TerminalColors.primaryText)
                     .padding(.horizontal, SettingsLayout.fieldHorizontalPadding)
                     .padding(.vertical, SettingsLayout.fieldVerticalPadding)
@@ -173,7 +173,7 @@ struct EmotionAnalysisSettingsView: View {
 
                 if apiKeyInput.isEmpty {
                     Text(provider.apiKeyPlaceholder)
-                        .font(.system(size: 11, design: .monospaced))
+                        .panelFont(size: 11, design: .monospaced)
                         .foregroundColor(TerminalColors.dimmedText)
                         .padding(.leading, SettingsLayout.fieldHorizontalPadding)
                         .allowsHitTesting(false)
@@ -186,7 +186,7 @@ struct EmotionAnalysisSettingsView: View {
                 saveApiKey(for: provider)
             }) {
                 Image(systemName: hasApiKey ? "checkmark.circle.fill" : "arrow.right.circle")
-                    .font(.system(size: 14))
+                    .panelFont(size: 14)
                     .foregroundColor(hasApiKey ? TerminalColors.green : TerminalColors.dimmedText)
             }
             .buttonStyle(.plain)
@@ -196,12 +196,12 @@ struct EmotionAnalysisSettingsView: View {
     private var baseURLSection: some View {
         HStack {
             Image(systemName: "link")
-                .font(.system(size: 12))
+                .panelFont(size: 12)
                 .foregroundColor(TerminalColors.secondaryText)
                 .frame(width: 20)
 
             Text("Base URL")
-                .font(.system(size: 12))
+                .panelFont(size: 12)
                 .foregroundColor(TerminalColors.primaryText)
                 .layoutPriority(1)
 
@@ -216,7 +216,7 @@ struct EmotionAnalysisSettingsView: View {
         ZStack(alignment: .leading) {
             TextField("", text: $baseURLInput)
                 .textFieldStyle(.plain)
-                .font(.system(size: 11, design: .monospaced))
+                .panelFont(size: 11, design: .monospaced)
                 .foregroundColor(TerminalColors.primaryText)
                 .padding(.horizontal, SettingsLayout.fieldHorizontalPadding)
                 .padding(.vertical, SettingsLayout.fieldVerticalPadding)
@@ -227,7 +227,7 @@ struct EmotionAnalysisSettingsView: View {
 
             if baseURLInput.isEmpty {
                 Text(provider.apiBaseURLPlaceholder)
-                    .font(.system(size: 11, design: .monospaced))
+                    .panelFont(size: 11, design: .monospaced)
                     .foregroundColor(TerminalColors.dimmedText)
                     .padding(.leading, SettingsLayout.fieldHorizontalPadding)
                     .allowsHitTesting(false)
@@ -240,7 +240,7 @@ struct EmotionAnalysisSettingsView: View {
         Button(action: openAPIKeyPage) {
             SettingsRowView(icon: "arrow.up.right.square", title: "Get API Key") {
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10))
+                    .panelFont(size: 10)
                     .foregroundColor(TerminalColors.dimmedText)
             }
             .background(
@@ -281,7 +281,7 @@ struct EmotionAnalysisSettingsView: View {
         case .idle:
             if canTest {
                 Image(systemName: "play.circle")
-                    .font(.system(size: 13))
+                    .panelFont(size: 13)
                     .foregroundColor(TerminalColors.dimmedText)
             } else {
                 statusBadge(String(localized: "Missing key"), color: TerminalColors.red)
@@ -292,7 +292,7 @@ struct EmotionAnalysisSettingsView: View {
                 .frame(width: 16, height: 16)
         case .success:
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 13))
+                .panelFont(size: 13)
                 .foregroundColor(TerminalColors.green)
         case .failure(let message):
             statusBadge(message, color: TerminalColors.red)
@@ -315,7 +315,7 @@ struct EmotionAnalysisSettingsView: View {
 
     private func testDetailText(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 10))
+            .panelFont(size: 10)
             .foregroundColor(TerminalColors.dimmedText)
             .lineLimit(1)
             .truncationMode(.tail)
@@ -331,10 +331,10 @@ struct EmotionAnalysisSettingsView: View {
                 SettingsRowView(icon: "cpu", title: "Model") {
                     HStack(spacing: 4) {
                         Text(model.displayName)
-                            .font(.system(size: 11))
+                            .panelFont(size: 11)
                             .foregroundColor(TerminalColors.secondaryText)
                         Image(systemName: isModelPickerExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 9))
+                            .panelFont(size: 9)
                             .foregroundColor(TerminalColors.dimmedText)
                     }
                 }
@@ -370,7 +370,7 @@ struct EmotionAnalysisSettingsView: View {
                     .frame(width: 6, height: 6)
 
                 Text(option.displayName)
-                    .font(.system(size: 11, weight: .medium))
+                    .panelFont(size: 11, weight: .medium)
                     .foregroundColor(model == option ? TerminalColors.primaryText : TerminalColors.secondaryText)
                     .lineLimit(1)
 

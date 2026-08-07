@@ -65,12 +65,12 @@ struct CostDashboardView: View {
                 chart(report)
                 if report.entries.contains(where: { $0.requestCount > 0 && $0.pricedFraction < 1 }) {
                     Text("Some models lack pricing — cost is partial")
-                        .font(.caption2)
+                        .panelFont(size: 10)
                         .foregroundStyle(.orange)
                 }
             } else {
                 Text("Scanning usage…")
-                    .font(.system(size: 13, weight: .semibold))
+                    .panelFont(size: 13, weight: .semibold)
                     .foregroundStyle(TerminalColors.secondaryText)
                     .frame(maxWidth: .infinity)
                     .frame(height: Self.statRowHeight + Self.sectionSpacing + Self.chartHeight)
@@ -158,9 +158,9 @@ struct CostDashboardView: View {
 
     private func stat(_ title: String, _ value: String, valueSize: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption2).foregroundStyle(TerminalColors.secondaryText)
+            Text(title).panelFont(size: 10).foregroundStyle(TerminalColors.secondaryText)
                 .lineLimit(1)
-            Text(value).font(.system(size: valueSize, weight: .semibold))
+            Text(value).panelFont(size: valueSize, weight: .semibold)
                 .foregroundStyle(TerminalColors.primaryText)
                 .lineLimit(1)
         }
@@ -257,7 +257,7 @@ struct CostDashboardView: View {
                 HStack(spacing: 4) {
                     Circle().fill(row.color).frame(width: 6, height: 6)
                     Text(row.label)
-                        .font(.caption2)
+                        .panelFont(size: 10)
                         .foregroundStyle(TerminalColors.primaryText)
                         .lineLimit(1)
                 }

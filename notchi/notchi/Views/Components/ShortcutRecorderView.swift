@@ -20,7 +20,7 @@ struct ShortcutRecorderView: View {
             if shortcut != .defaultTogglePanel {
                 Button(action: resetShortcut) {
                     Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 10, weight: .semibold))
+                        .panelFont(size: 10, weight: .semibold)
                         .foregroundColor(TerminalColors.dimmedText)
                         .frame(width: 18, height: 18)
                 }
@@ -30,7 +30,7 @@ struct ShortcutRecorderView: View {
 
             Button(action: beginRecording) {
                 Text(buttonText)
-                    .font(.system(size: 10, weight: .medium))
+                    .panelFont(size: 10, weight: .medium)
                     .foregroundColor(buttonForeground)
                     .lineLimit(1)
                     .padding(.horizontal, 7)

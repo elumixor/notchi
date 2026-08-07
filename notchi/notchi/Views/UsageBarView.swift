@@ -128,9 +128,9 @@ struct UsageBarView: View {
             Button(action: { onConnect?() }) {
                 HStack(spacing: 4) {
                     Image(systemName: "lock.shield")
-                        .font(.system(size: 10))
+                        .panelFont(size: 10)
                     Text("Tap to show Claude usage")
-                        .font(.system(size: 11, weight: .medium))
+                        .panelFont(size: 11, weight: .medium)
                 }
                 .foregroundColor(TerminalColors.dimmedText)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -149,17 +149,17 @@ struct UsageBarView: View {
             HStack {
                 if let error, usage == nil {
                     Text(error)
-                        .font(.system(size: 11, weight: .medium))
+                        .panelFont(size: 11, weight: .medium)
                         .foregroundColor(TerminalColors.red.opacity(0.8))
                 } else if let usage, let resetTime = usage.formattedResetTime {
                     HStack(alignment: .center, spacing: 4) {
                         Text(resetLabelText(for: resetTime))
-                            .font(.system(size: 11, weight: .medium))
+                            .panelFont(size: 11, weight: .medium)
                             .foregroundColor(TerminalColors.secondaryText)
                             .lineLimit(1)
                         if let statusMessage {
                             Text("• \(statusMessage)")
-                                .font(.system(size: 10))
+                                .panelFont(size: 10)
                                 .foregroundColor(Color.white.opacity(0.35))
                                 .lineLimit(1)
                                 .truncationMode(.tail)
@@ -167,11 +167,11 @@ struct UsageBarView: View {
                     }
                 } else if let statusMessage, usage != nil {
                     Text(statusMessage)
-                        .font(.system(size: 10))
+                        .panelFont(size: 10)
                         .foregroundColor(TerminalColors.dimmedText)
                 } else {
                     Text(label)
-                        .font(.system(size: 11, weight: .medium))
+                        .panelFont(size: 11, weight: .medium)
                         .foregroundColor(TerminalColors.secondaryText)
                 }
                 Spacer()
@@ -182,18 +182,18 @@ struct UsageBarView: View {
                     HStack(alignment: .center, spacing: 6) {
                         if shouldShowExtraUsageIndicator {
                             Text("Extra Usage")
-                                .font(.system(size: 10, weight: .medium))
+                                .panelFont(size: 10, weight: .medium)
                                 .foregroundColor(TerminalColors.red.opacity(0.85))
                                 .lineLimit(1)
                         }
                         if onOpenDetail != nil {
                             Image(systemName: "chart.bar.xaxis")
-                                .font(.system(size: 10, weight: .medium))
+                                .panelFont(size: 10, weight: .medium)
                                 .foregroundColor(TerminalColors.secondaryText)
                         }
                         if usage != nil {
                             Text("\(effectivePercentage)%")
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .panelFont(size: 11, weight: .semibold, design: .monospaced)
                                 .foregroundColor(usageColor)
                         }
                         if shouldShowRecoveryButton {
@@ -214,7 +214,7 @@ struct UsageBarView: View {
     private var recoveryButton: some View {
         Button(action: performRecoveryAction) {
             Image(systemName: "arrow.clockwise")
-                .font(.system(size: 11, weight: .semibold))
+                .panelFont(size: 11, weight: .semibold)
                 .foregroundColor(isStale ? TerminalColors.secondaryText : TerminalColors.red.opacity(0.8))
                 .opacity(isPulsing ? 0.8 : 1.0)
                 .offset(y: -1)

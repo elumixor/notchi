@@ -7,6 +7,8 @@ struct MarkdownText: View {
     let baseColor: Color
     let fontSize: CGFloat
 
+    @Environment(\.panelScale) private var panelScale
+
     init(_ text: String, color: Color = .white, fontSize: CGFloat = 13) {
         self.text = text
         self.baseColor = color
@@ -32,7 +34,7 @@ struct MarkdownText: View {
         case .unorderedListItem(let content):
             HStack(alignment: .top, spacing: 6) {
                 SwiftUI.Text("\u{2022}")
-                    .font(.system(size: fontSize))
+                    .panelFont(size: fontSize)
                     .foregroundColor(baseColor.opacity(0.6))
                     .frame(width: 12, alignment: .center)
                 inlineMarkdownText(content)
@@ -41,7 +43,7 @@ struct MarkdownText: View {
         case .orderedListItem(let number, let content):
             HStack(alignment: .top, spacing: 6) {
                 SwiftUI.Text("\(number).")
-                    .font(.system(size: fontSize))
+                    .panelFont(size: fontSize)
                     .foregroundColor(baseColor.opacity(0.6))
                     .frame(width: 20, alignment: .trailing)
                 inlineMarkdownText(content)
@@ -61,7 +63,7 @@ struct MarkdownText: View {
         case .codeBlock(let code):
             ScrollView(.horizontal, showsIndicators: false) {
                 SwiftUI.Text(code)
-                    .font(.system(size: 11, design: .monospaced))
+                    .panelFont(size: 11, design: .monospaced)
                     .foregroundColor(.white.opacity(0.85))
                     .padding(10)
             }
@@ -77,7 +79,7 @@ struct MarkdownText: View {
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )
         return SwiftUI.Text(attributed ?? AttributedString(content))
-            .font(.system(size: fontSize))
+            .font(.system(size: fontSize * panelScale))
             .foregroundColor(baseColor)
     }
 }

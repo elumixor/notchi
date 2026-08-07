@@ -12,12 +12,12 @@ struct ToolArgumentsView: View {
             ForEach(sortedKeys, id: \.self) { key in
                 HStack(alignment: .top, spacing: 8) {
                     Text(key)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .panelFont(size: 11, weight: .medium, design: .monospaced)
                         .foregroundColor(TerminalColors.secondaryText)
                         .frame(minWidth: 60, alignment: .leading)
 
                     Text(formatValue(arguments[key]))
-                        .font(.system(size: 11, design: .monospaced))
+                        .panelFont(size: 11, design: .monospaced)
                         .foregroundColor(TerminalColors.primaryText)
                         .lineLimit(3)
                 }

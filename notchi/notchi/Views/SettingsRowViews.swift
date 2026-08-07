@@ -4,9 +4,11 @@ struct SettingsStatusBadge: View {
     let text: String
     let color: Color
 
+    @Environment(\.panelScale) private var panelScale
+
     var body: some View {
         Text(text)
-            .font(.system(size: 10, weight: .medium))
+            .panelFont(size: 10, weight: .medium)
             .foregroundColor(color)
             .lineLimit(1)
             .truncationMode(.tail)
@@ -14,7 +16,7 @@ struct SettingsStatusBadge: View {
             .padding(.vertical, 2)
             .background(color.opacity(0.15))
             .cornerRadius(4)
-            .frame(maxWidth: 160, alignment: .trailing)
+            .frame(maxWidth: 160 * panelScale, alignment: .trailing)
     }
 }
 
@@ -23,15 +25,17 @@ struct SettingsRowView<Trailing: View>: View {
     let title: LocalizedStringKey
     @ViewBuilder let trailing: () -> Trailing
 
+    @Environment(\.panelScale) private var panelScale
+
     var body: some View {
         HStack {
             Image(systemName: icon)
-                .font(.system(size: 12))
+                .panelFont(size: 12)
                 .foregroundColor(TerminalColors.secondaryText)
-                .frame(width: 20)
+                .frame(width: 20 * panelScale)
 
             Text(title)
-                .font(.system(size: 12))
+                .panelFont(size: 12)
                 .foregroundColor(TerminalColors.primaryText)
 
             Spacer()
