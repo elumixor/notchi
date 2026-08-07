@@ -17,7 +17,7 @@ struct ActivityRowView: View {
 
             if let description = event.description {
                 Text(description)
-                    .font(.system(size: 12).italic())
+                    .panelFont(size: 12) { $0.italic() }
                     .foregroundColor(TerminalColors.dimmedText)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -43,22 +43,29 @@ struct ActivityRowView: View {
 
     private var toolName: some View {
         Text(event.tool ?? event.type)
-            .font(.system(size: 13, weight: .semibold))
+            .panelFont(size: 13, weight: .semibold)
             .foregroundColor(TerminalColors.primaryText)
     }
 
     private var statusLabel: some View {
         let isSuccess = event.status == .success
         return Text(isSuccess ? String(localized: "Completed") : String(localized: "Failed"))
-            .font(.system(size: 12))
+            .panelFont(size: 12)
             .foregroundColor(isSuccess ? TerminalColors.green : TerminalColors.red)
     }
 }
 
 private struct InlineAnswerTextField: NSViewRepresentable {
+    static let baseFontSize: CGFloat = 10
+
     @Binding var text: String
     let isFocused: Bool
+    let panelScale: CGFloat
     let onSubmit: (String) -> Void
+
+    private var scaledFontSize: CGFloat {
+        Self.baseFontSize * PanelTypography.fontScale(panelScale: panelScale)
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -77,7 +84,7 @@ private struct InlineAnswerTextField: NSViewRepresentable {
         textField.drawsBackground = false
         textField.focusRingType = .none
         textField.placeholderString = String(localized: "Type answer")
-        textField.font = .systemFont(ofSize: 10)
+        textField.font = .systemFont(ofSize: scaledFontSize)
         textField.textColor = .white
         textField.lineBreakMode = .byTruncatingTail
         textField.cell?.usesSingleLineMode = true
@@ -88,6 +95,7 @@ private struct InlineAnswerTextField: NSViewRepresentable {
 
     func updateNSView(_ textField: NSTextField, context: Context) {
         context.coordinator.parent = self
+        textField.font = .systemFont(ofSize: scaledFontSize)
         if let textField = textField as? SubmittingTextField {
             textField.onSubmitText = { submittedText in
                 context.coordinator.submit(submittedText)
@@ -165,6 +173,8 @@ private struct InlineAnswerTextField: NSViewRepresentable {
 }
 
 struct QuestionPromptView: View {
+    @Environment(\.panelScale) private var panelScale
+
     let questions: [PendingQuestion]
     let provider: AgentProvider
     let responseHint: String?
@@ -212,7 +222,7 @@ struct QuestionPromptView: View {
             optionsList
             if let responseHint {
                 Text(responseHint)
-                    .font(.system(size: 10, weight: .medium).italic())
+                    .panelFont(size: 10, weight: .medium) { $0.italic() }
                     .foregroundColor(TerminalColors.secondaryText)
                     .padding(.top, 7)
                     .modifier(QuestionHintShake(animatableData: responseHintShakePhase))
@@ -240,7 +250,7 @@ struct QuestionPromptView: View {
         HStack {
             if let header = current.header {
                 Text(header)
-                    .font(.system(size: 10, weight: .semibold))
+                    .panelFont(size: 10, weight: .semibold)
                     .foregroundColor(accentColor)
                     .textCase(.uppercase)
                     .tracking(0.5)
@@ -248,7 +258,7 @@ struct QuestionPromptView: View {
 
             if hasMultipleQuestions {
                 Text("(\(clampedIndex + 1)/\(questions.count))")
-                    .font(.system(size: 10, weight: .medium).monospacedDigit())
+                    .panelFont(size: 10, weight: .medium) { $0.monospacedDigit() }
                     .foregroundColor(TerminalColors.secondaryText)
             }
 
@@ -264,7 +274,7 @@ struct QuestionPromptView: View {
         HStack(spacing: 2) {
             Button(action: { showQuestion(at: currentIndex - 1) }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 9, weight: .semibold))
+                    .panelFont(size: 9, weight: .semibold)
                     .foregroundColor(currentIndex > 0 ? TerminalColors.primaryText : TerminalColors.dimmedText)
             }
             .buttonStyle(.plain)
@@ -272,7 +282,7 @@ struct QuestionPromptView: View {
 
             Button(action: { showQuestion(at: currentIndex + 1) }) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
+                    .panelFont(size: 9, weight: .semibold)
                     .foregroundColor(currentIndex < questions.count - 1 ? TerminalColors.primaryText : TerminalColors.dimmedText)
             }
             .buttonStyle(.plain)
@@ -282,7 +292,7 @@ struct QuestionPromptView: View {
 
     private var questionText: some View {
         Text(current.question)
-            .font(.system(size: 12, weight: .medium))
+            .panelFont(size: 12, weight: .medium)
             .foregroundColor(TerminalColors.primaryText)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -358,7 +368,7 @@ struct QuestionPromptView: View {
 
         return HStack(alignment: .center, spacing: 9) {
             Text("\(index + 1)")
-                .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                .panelFont(size: 9, weight: .semibold) { $0.monospacedDigit() }
                 .foregroundColor(TerminalColors.primaryText.opacity(0.82))
                 .frame(width: 20, height: 20)
                 .background(
@@ -368,7 +378,7 @@ struct QuestionPromptView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(option.label)
-                    .font(.system(size: 11, weight: .medium))
+                    .panelFont(size: 11, weight: .medium)
                     .foregroundColor(TerminalColors.primaryText)
 
                 InlineAnswerTextField(text: Binding(
@@ -377,10 +387,10 @@ struct QuestionPromptView: View {
                         customAnswersByQuestion[questionIndex] = newValue
                         selectedOptionIndexesByQuestion[questionIndex] = nil
                     }
-                ), isFocused: focusedFreeTextQuestionIndex == questionIndex) { submittedText in
+                ), isFocused: focusedFreeTextQuestionIndex == questionIndex, panelScale: panelScale) { submittedText in
                     submitFreeTextAnswer(submittedText, for: questionIndex)
                 }
-                .frame(height: 14)
+                .frame(height: 14 * PanelTypography.fontScale(panelScale: panelScale))
             }
 
             Spacer(minLength: 8)
@@ -389,7 +399,7 @@ struct QuestionPromptView: View {
                 submitFreeTextAnswer(answer, for: questionIndex)
             } label: {
                 Image(systemName: "arrow.turn.down.left")
-                    .font(.system(size: 9, weight: .semibold))
+                    .panelFont(size: 9, weight: .semibold)
                     .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.dimmedText)
                     .frame(width: 20, height: 20)
             }
@@ -433,7 +443,7 @@ struct QuestionPromptView: View {
 
         return HStack(alignment: .center, spacing: 9) {
             Text("\(index + 1)")
-                .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                .panelFont(size: 9, weight: .semibold) { $0.monospacedDigit() }
                 .foregroundColor(TerminalColors.primaryText.opacity(0.82))
                 .frame(width: 20, height: 20)
                 .background(
@@ -443,11 +453,11 @@ struct QuestionPromptView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(option.label)
-                    .font(.system(size: 11, weight: .medium))
+                    .panelFont(size: 11, weight: .medium)
                     .foregroundColor(TerminalColors.primaryText)
                 if let description = option.description {
                     Text(description)
-                        .font(.system(size: 10))
+                        .panelFont(size: 10)
                         .foregroundColor(TerminalColors.secondaryText)
                         .lineLimit(2)
                 }
@@ -703,17 +713,17 @@ struct QuestionPromptView: View {
     ) -> some View {
         HStack(alignment: .top, spacing: 6) {
             Text("\(index + 1).")
-                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                .panelFont(size: 11, weight: .semibold) { $0.monospacedDigit() }
                 .foregroundColor(accentColor)
                 .frame(width: 16, alignment: .trailing)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(option.label)
-                    .font(.system(size: 11, weight: .medium))
+                    .panelFont(size: 11, weight: .medium)
                     .foregroundColor(TerminalColors.primaryText)
                 if let description = option.description {
                     Text(description)
-                        .font(.system(size: 10))
+                        .panelFont(size: 10)
                         .foregroundColor(TerminalColors.dimmedText)
                         .lineLimit(2)
                 }
@@ -775,12 +785,12 @@ struct WorkingIndicatorView: View {
     var body: some View {
         HStack(spacing: 3) {
             Text(displaySymbol)
-                .font(.system(size: 14, weight: .bold))
+                .panelFont(size: 14, weight: .bold)
                 .foregroundColor(color)
                 .frame(width: 14, alignment: .center)
             ShimmeringText(
                 text: displayText,
-                font: .system(size: 12, weight: .medium).italic(),
+                fontSize: 12,
                 color: color,
                 isEnabled: state.task != .waiting
             )
@@ -798,7 +808,7 @@ struct WorkingIndicatorView: View {
 
 private struct ShimmeringText: View {
     let text: String
-    let font: Font
+    let fontSize: CGFloat
     let color: Color
     let isEnabled: Bool
 
@@ -818,14 +828,14 @@ private struct ShimmeringText: View {
 
     var body: some View {
         Text(text)
-            .font(font)
+            .panelFont(size: fontSize, weight: .medium) { $0.italic() }
             .foregroundColor(color)
             .overlay(alignment: .leading) {
                 if shimmerActive {
                     shimmerSweep
                         .mask(
                             Text(text)
-                                .font(font)
+                                .panelFont(size: fontSize, weight: .medium) { $0.italic() }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         )
                 }

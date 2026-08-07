@@ -141,6 +141,36 @@ enum ExpandedPanelMode: String, CaseIterable {
     case islandOnly
 }
 
+enum ExpandedPanelScale: String, CaseIterable, Identifiable {
+    case automatic
+    case standard
+    case large
+
+    static let automaticLargeMinimumHeight: CGFloat = 1100
+
+    var id: String { rawValue }
+
+    func resolved(visibleScreenHeight: CGFloat) -> ExpandedPanelScale {
+        guard self == .automatic else { return self }
+        return visibleScreenHeight >= Self.automaticLargeMinimumHeight ? .large : .standard
+    }
+
+    var multiplier: CGFloat {
+        switch self {
+        case .automatic, .standard: 1
+        case .large: 1.25
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .automatic: String(localized: "Automatic")
+        case .standard: String(localized: "Standard")
+        case .large: String(localized: "Large")
+        }
+    }
+}
+
 struct AppSettings {
     static let hideSpriteWhenIdleKey = "hideSpriteWhenIdle"
     static let hideGrassIslandKey = "hideGrassIsland"
@@ -148,6 +178,7 @@ struct AppSettings {
     static let panelToggleShortcutKey = "panelToggleShortcut"
     static let notchLeftContentKey = "notchLeftContent"
     static let notchRightContentKey = "notchRightContent"
+    static let expandedPanelScaleKey = "expandedPanelScale"
 
     private static let notificationSoundKey = "notificationSound"
     private static let notificationSoundSelectionKey = "notificationSoundSelection"
@@ -224,6 +255,15 @@ struct AppSettings {
             let resolved: NotchSlotContent = other == newValue ? previous : .ring
             UserDefaults.standard.set(resolved.rawValue, forKey: otherKey)
         }
+    }
+
+    static func expandedPanelScale(in defaults: UserDefaults) -> ExpandedPanelScale {
+        ExpandedPanelScale(rawValue: defaults.string(forKey: expandedPanelScaleKey) ?? "") ?? .automatic
+    }
+
+    static var expandedPanelScale: ExpandedPanelScale {
+        get { expandedPanelScale(in: .standard) }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: expandedPanelScaleKey) }
     }
 
     static var hideSpriteWhenIdle: Bool {

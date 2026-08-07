@@ -14,6 +14,7 @@ struct UsageDetailView: View {
 
     @State private var selectedTab: UsageTab
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
+    @Environment(\.panelScale) private var panelScale
 
     init(
         claudeUsage: ClaudeUsageService,
@@ -137,6 +138,11 @@ struct UsageDetailView: View {
         }
     }
 
+    static func usesTwoColumnLayout(rowCount: Int, hideGrassIsland: Bool, panelScale: CGFloat) -> Bool {
+        guard panelScale <= 1 else { return false }
+        return rowCount >= 3 && !hideGrassIsland
+    }
+
     private var usageRowCount: Int {
         periods.count + (extraUsage == nil ? 0 : 1) + (codexCreditsUSD == nil ? 0 : 1)
     }
@@ -164,7 +170,11 @@ struct UsageDetailView: View {
                 .padding(.bottom, 2)
 
             if case .provider = resolvedTab {
-                if usageRowCount >= 3 && !hideGrassIsland {
+                if Self.usesTwoColumnLayout(
+                    rowCount: usageRowCount,
+                    hideGrassIsland: hideGrassIsland,
+                    panelScale: panelScale
+                ) {
                     LazyVGrid(
                         columns: [
                             GridItem(.flexible(), spacing: 14, alignment: .topLeading),
@@ -190,7 +200,7 @@ struct UsageDetailView: View {
                 providerToggle
             } else {
                 Text(resolvedProvider.displayName)
-                    .font(.system(size: 16, weight: .bold))
+                    .panelFont(size: 16, weight: .bold)
                     .foregroundColor(TerminalColors.primaryText)
             }
 
@@ -219,12 +229,12 @@ struct UsageDetailView: View {
             HStack(spacing: 6) {
                 Circle().fill(color).frame(width: 6, height: 6)
                 Text(name)
-                    .font(.system(size: 12, weight: .semibold))
+                    .panelFont(size: 12, weight: .semibold)
                     .foregroundColor(TerminalColors.primaryText)
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Text(Self.breakdownDetail(report))
-                    .font(.system(size: 10))
+                    .panelFont(size: 10)
                     .foregroundColor(TerminalColors.secondaryText)
                     .lineLimit(1)
             }
@@ -254,7 +264,7 @@ struct UsageDetailView: View {
             ForEach([UsageTab.provider(.claude), .provider(.codex), .all], id: \.self) { tab in
                 Button(action: { selectedTab = tab }) {
                     Text(Self.tabTitle(tab))
-                        .font(.system(size: 14, weight: .semibold))
+                        .panelFont(size: 14, weight: .semibold)
                         .foregroundColor(
                             resolvedTab == tab
                                 ? TerminalColors.primaryText
@@ -302,24 +312,24 @@ struct UsagePeriodRowView: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(display.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .panelFont(size: 14, weight: .semibold)
                     .foregroundColor(TerminalColors.primaryText)
                     .lineLimit(1)
                     .layoutPriority(1)
                 if display.isStale {
                     Text("stale data")
-                        .font(.system(size: 10))
+                        .panelFont(size: 10)
                         .foregroundColor(TerminalColors.secondaryText)
                         .lineLimit(1)
                 } else if let resetText = display.resetText {
                     Text(resetText)
-                        .font(.system(size: 10))
+                        .panelFont(size: 10)
                         .foregroundColor(TerminalColors.secondaryText)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 Text("\(display.percentUsed)%")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .panelFont(size: 11, weight: .semibold, design: .monospaced)
                     .foregroundColor(color)
                     .lineLimit(1)
                     .fixedSize()
@@ -336,7 +346,7 @@ struct ExtraUsageRowView: View {
         let color = TerminalColors.usageColor(forPercentUsed: display.percentUsed)
         VStack(alignment: .leading, spacing: 7) {
             Text("Extra usage")
-                .font(.system(size: 14, weight: .semibold))
+                .panelFont(size: 14, weight: .semibold)
                 .foregroundColor(TerminalColors.primaryText)
             UsageProgressBar(percentUsed: display.percentUsed, color: color)
             HStack {
@@ -346,7 +356,7 @@ struct ExtraUsageRowView: View {
                 Text("\(Self.currency(display.monthlyLimit)) limit")
                     .foregroundColor(TerminalColors.secondaryText)
             }
-            .font(.system(size: 10))
+            .panelFont(size: 10)
         }
     }
 
@@ -364,14 +374,14 @@ struct CodexCreditsRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text("Extra usage")
-                .font(.system(size: 14, weight: .semibold))
+                .panelFont(size: 14, weight: .semibold)
                 .foregroundColor(TerminalColors.primaryText)
             HStack {
                 Text(String(localized: "\(String(format: "$%.2f", remainingUSD)) remaining"))
                     .foregroundColor(TerminalColors.secondaryText)
                 Spacer()
             }
-            .font(.system(size: 10))
+            .panelFont(size: 10)
         }
     }
 }

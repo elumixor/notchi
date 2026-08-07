@@ -1,7 +1,12 @@
 import SwiftUI
 
-private enum SpriteLayout {
+enum SpriteLayout {
     static let size: CGFloat = 64
+    static let enlargedSpriteScale: CGFloat = 1.125
+
+    static func spriteScale(panelScale: CGFloat) -> CGFloat {
+        panelScale > 1 ? enlargedSpriteScale : 1
+    }
     static let usableWidthFraction: CGFloat = 0.8
     static let leftMarginFraction: CGFloat = 0.1
 
@@ -167,12 +172,14 @@ private struct SpriteTapTarget: View {
     @Binding var hoveredSessionId: String?
     var onTap: (() -> Void)?
 
+    @Environment(\.panelScale) private var panelScale
     @State private var tapScale: CGFloat = 1.0
 
     var body: some View {
-        Button(action: handleTap) {
+        let spriteSize = SpriteLayout.size * SpriteLayout.spriteScale(panelScale: panelScale)
+        return Button(action: handleTap) {
             Color.clear
-                .frame(width: SpriteLayout.size, height: SpriteLayout.size)
+                .frame(width: spriteSize, height: spriteSize)
                 .contentShape(Rectangle())
         }
         .buttonStyle(NoHighlightButtonStyle())
@@ -238,6 +245,7 @@ private struct GrassSpriteView: View {
     var glowOpacity: Double = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.panelScale) private var panelScale
     @State private var stateMirrorKey: String?
     @State private var stateMirrored = false
 
@@ -253,6 +261,7 @@ private struct GrassSpriteView: View {
 
     var body: some View {
         let motion = GrassSpriteMotion(state: state, reduceMotion: reduceMotion)
+        let spriteSize = SpriteLayout.size * SpriteLayout.spriteScale(panelScale: panelScale)
         return TimelineView(.animation(minimumInterval: motion.frameInterval, paused: !motion.isAnimating)) { timeline in
             let presentation = spriteSheetPresentation(at: timeline.date)
             SpriteSheetView(
@@ -264,12 +273,15 @@ private struct GrassSpriteView: View {
                 animationStartDate: SpriteAnimationPhase.variedLoopAnchor(for: sessionId, spriteSheet: state.spriteSheetName),
                 isMirrored: presentation.renderMirrored
             )
-            .frame(width: SpriteLayout.size, height: SpriteLayout.size)
+            .frame(width: spriteSize, height: spriteSize)
             .background(alignment: .bottom) {
                 if glowOpacity > 0 {
                     Ellipse()
                         .fill(glowColor.opacity(glowOpacity))
-                        .frame(width: SpriteLayout.size * 0.85, height: SpriteLayout.size * 0.25)
+                        .frame(
+                            width: spriteSize * 0.85,
+                            height: spriteSize * 0.25
+                        )
                         .blur(radius: 8)
                         .offset(y: 4)
                 }

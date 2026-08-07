@@ -119,7 +119,7 @@ struct PanelSettingsView: View {
                     aboutSection
                 }
             }
-            .scrollIndicators(.hidden)
+            .scrollIndicators(.never)
 
             Spacer()
 
@@ -132,7 +132,7 @@ struct PanelSettingsView: View {
         Button(action: { path.append(screen) }) {
             SettingsRowView(icon: icon, title: title) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
+                    .panelFont(size: 9, weight: .semibold)
                     .foregroundColor(TerminalColors.dimmedText)
             }
         }
@@ -149,7 +149,7 @@ struct PanelSettingsView: View {
                             statusBadge(status)
                         }
                         Image(systemName: areHooksExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 9, weight: .semibold))
+                            .panelFont(size: 9, weight: .semibold)
                             .foregroundColor(TerminalColors.dimmedText)
                     }
                 }
@@ -186,7 +186,7 @@ struct PanelSettingsView: View {
         Button(action: { toggleHooks(for: provider) }) {
             HStack(spacing: 8) {
                 Text(provider.displayName)
-                    .font(.system(size: 11))
+                    .panelFont(size: 11)
                     .foregroundColor(TerminalColors.primaryText)
 
                 Spacer()
@@ -210,7 +210,7 @@ struct PanelSettingsView: View {
                     let status = emotionAnalysisStatus()
                     statusBadge(status.text, color: status.color)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
+                        .panelFont(size: 9, weight: .semibold)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
             }
@@ -243,7 +243,7 @@ struct PanelSettingsView: View {
         Button(action: action) {
             SettingsRowView(icon: icon, title: title) {
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10))
+                    .panelFont(size: 10)
                     .foregroundColor(TerminalColors.dimmedText)
             }
         }
@@ -300,9 +300,9 @@ struct PanelSettingsView: View {
         }) {
             HStack {
                 Image(systemName: "xmark.circle")
-                    .font(.system(size: 13))
+                    .panelFont(size: 13)
                 Text("Quit Notchi")
-                    .font(.system(size: 12, weight: .medium))
+                    .panelFont(size: 12, weight: .medium)
             }
             .foregroundColor(TerminalColors.red)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -468,7 +468,7 @@ struct PanelSettingsView: View {
                 ProgressView()
                     .controlSize(.mini)
                 Text("Checking...")
-                    .font(.system(size: 10))
+                    .panelFont(size: 10)
                     .foregroundColor(TerminalColors.dimmedText)
             }
         case .upToDate:
@@ -480,7 +480,7 @@ struct PanelSettingsView: View {
                 ProgressView()
                     .controlSize(.mini)
                 Text("Downloading...")
-                    .font(.system(size: 10))
+                    .panelFont(size: 10)
                     .foregroundColor(TerminalColors.dimmedText)
             }
         case .readyToInstall:
@@ -489,7 +489,7 @@ struct PanelSettingsView: View {
             statusBadge(failure.label, color: TerminalColors.red)
         case .idle:
             Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0")")
-                .font(.system(size: 10))
+                .panelFont(size: 10)
                 .foregroundColor(TerminalColors.dimmedText)
         }
     }

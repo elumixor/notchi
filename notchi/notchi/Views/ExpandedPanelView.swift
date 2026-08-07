@@ -18,24 +18,28 @@ private struct PanelSwapTransitionModifier: ViewModifier {
 
 private struct MorphingText: View {
     let text: String
-    let textFont: Font
+    let fontSize: CGFloat
+    let fontWeight: Font.Weight
     let color: Color
     var alignment: TextAlignment = .leading
     var lineLimit: Int? = 1
 
+    @Environment(\.panelScale) private var panelScale
     @State private var displayedText: String
     @State private var blurProgress: CGFloat = 0
     @State private var morphGeneration = 0
 
     init(
         text: String,
-        font: Font,
+        fontSize: CGFloat,
+        fontWeight: Font.Weight = .regular,
         color: Color,
         alignment: TextAlignment = .leading,
         lineLimit: Int? = 1
     ) {
         self.text = text
-        self.textFont = font
+        self.fontSize = fontSize
+        self.fontWeight = fontWeight
         self.color = color
         self.alignment = alignment
         self.lineLimit = lineLimit
@@ -43,7 +47,8 @@ private struct MorphingText: View {
     }
 
     var body: some View {
-        let baseText: Text = Text(displayedText).font(textFont)
+        let baseText: Text = Text(displayedText)
+            .font(.system(size: fontSize * PanelTypography.fontScale(panelScale: panelScale), weight: fontWeight))
 
         return baseText
             .foregroundColor(color)
@@ -170,10 +175,15 @@ struct ExpandedPanelView: View {
     @Binding var isActivityCollapsed: Bool
     @Binding var hoveredSessionId: String?
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
+    @Environment(\.panelScale) private var panelScale
 
     static let compactHeaderClearance: CGFloat = 0
     static let compactFeedMaxHeight: CGFloat = 320
     static let defaultFeedMaxHeight: CGFloat = 200
+
+    static func feedMaxHeight(mode: ExpandedPanelMode, panelScale: CGFloat) -> CGFloat {
+        (mode == .compact ? compactFeedMaxHeight : defaultFeedMaxHeight) * panelScale
+    }
 
     init(
         sessionStore: SessionStore,
@@ -629,7 +639,8 @@ struct ExpandedPanelView: View {
                         if let session = effectiveSession {
                             MorphingText(
                                 text: sessionStore.displaySessionLabel(for: session),
-                                font: .system(size: 11, weight: .medium),
+                                fontSize: 11,
+                                fontWeight: .medium,
                                 color: TerminalColors.secondaryText
                             )
                         }
@@ -696,7 +707,7 @@ struct ExpandedPanelView: View {
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .frame(maxHeight: panelMode == .compact ? Self.compactFeedMaxHeight : Self.defaultFeedMaxHeight)
+                        .frame(maxHeight: Self.feedMaxHeight(mode: panelMode, panelScale: panelScale))
                         .onAppear {
                             if effectiveSession?.pendingQuestions.isEmpty == false {
                                 scrollToQuestionPrompt(proxy: proxy)
@@ -734,13 +745,14 @@ struct ExpandedPanelView: View {
         return VStack(spacing: 8) {
             MorphingText(
                 text: title,
-                font: .system(size: 14, weight: .medium),
+                fontSize: 14,
+                fontWeight: .medium,
                 color: TerminalColors.secondaryText,
                 alignment: .center
             )
             MorphingText(
                 text: subtitle,
-                font: .system(size: 12),
+                fontSize: 12,
                 color: TerminalColors.dimmedText,
                 alignment: .center,
                 lineLimit: 2
@@ -770,25 +782,28 @@ struct ExpandedPanelView: View {
 }
 
 struct PanelHeaderButton: View {
+    static let baseSize: CGFloat = 32
+
     let sfSymbol: String
     var showsIndicator: Bool = false
     let action: () -> Void
+    @Environment(\.panelScale) private var panelScale
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: sfSymbol)
-                .font(.system(size: 16, weight: .medium))
+                .panelIcon(size: 16, weight: .medium)
                 .foregroundColor(.white.opacity(0.7))
-                .frame(width: 32, height: 32)
+                .frame(width: Self.baseSize * panelScale, height: Self.baseSize * panelScale)
                 .background(isHovered ? TerminalColors.hoverBackground : TerminalColors.subtleBackground)
                 .clipShape(Circle())
                 .overlay(alignment: .topTrailing) {
                     if showsIndicator {
                         Circle()
                             .fill(TerminalColors.red)
-                            .frame(width: 6, height: 6)
-                            .offset(x: -6, y: 6)
+                            .frame(width: 6 * panelScale, height: 6 * panelScale)
+                            .offset(x: -6 * panelScale, y: 6 * panelScale)
                     }
                 }
         }
@@ -813,7 +828,7 @@ struct ModeBadgeView: View {
 
     var body: some View {
         Text(mode)
-            .font(.system(size: 11, weight: .medium))
+            .panelFont(size: 11, weight: .medium)
             .foregroundColor(color)
     }
 }

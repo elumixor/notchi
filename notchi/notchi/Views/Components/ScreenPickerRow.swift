@@ -19,23 +19,23 @@ struct ScreenPickerRow: View {
         }) {
             HStack {
                 Image(systemName: "display")
-                    .font(.system(size: 12))
+                    .panelFont(size: 12)
                     .foregroundColor(TerminalColors.secondaryText)
                     .frame(width: 20)
 
                 Text("Screen")
-                    .font(.system(size: 12))
+                    .panelFont(size: 12)
                     .foregroundColor(TerminalColors.primaryText)
 
                 Spacer()
 
                 HStack(spacing: 4) {
                     Text(currentSelectionLabel)
-                        .font(.system(size: 11))
+                        .panelFont(size: 11)
                         .foregroundColor(TerminalColors.secondaryText)
                         .lineLimit(1)
                     Image(systemName: screenSelector.isPickerExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9))
+                        .panelFont(size: 9)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
             }
@@ -90,12 +90,12 @@ struct ScreenPickerRow: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(label)
-                        .font(.system(size: 11))
+                        .panelFont(size: 11)
                         .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.secondaryText)
 
                     if let sublabel = sublabel {
                         Text(sublabel)
-                            .font(.system(size: 9))
+                            .panelFont(size: 9)
                             .foregroundColor(TerminalColors.dimmedText)
                     }
                 }
@@ -104,7 +104,7 @@ struct ScreenPickerRow: View {
 
                 if isSelected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
+                        .panelFont(size: 10, weight: .bold)
                         .foregroundColor(TerminalColors.green)
                 }
             }

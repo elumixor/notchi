@@ -45,22 +45,22 @@ struct SoundPickerView: View {
         }) {
             HStack {
                 Image(systemName: "speaker.wave.2")
-                    .font(.system(size: 12))
+                    .panelFont(size: 12)
                     .foregroundColor(TerminalColors.secondaryText)
                     .frame(width: 20)
 
                 Text("Notification Sound")
-                    .font(.system(size: 12))
+                    .panelFont(size: 12)
                     .foregroundColor(TerminalColors.primaryText)
 
                 Spacer()
 
                 HStack(spacing: 4) {
                     Text(AppSettings.isMuted ? String(localized: "Muted") : selectedSound.displayName(customSounds: customSounds))
-                        .font(.system(size: 11))
+                        .panelFont(size: 11)
                         .foregroundColor(TerminalColors.secondaryText)
                     Image(systemName: selector.isPickerExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 9))
+                        .panelFont(size: 9)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
             }
@@ -71,36 +71,29 @@ struct SoundPickerView: View {
     }
 
     private var expandedPicker: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
-                addCustomSoundRow
+        SettingsPicker(rowCount: selector.rowCount(customSoundCount: customSounds.count)) {
+            addCustomSoundRow
 
-                ForEach(customSounds) { sound in
-                    customSoundRow(sound)
-                }
-
-                ForEach(NotificationSound.displayOrder, id: \.self) { sound in
-                    soundRow(sound)
-                }
+            ForEach(customSounds) { sound in
+                customSoundRow(sound)
             }
-            .padding(.vertical, SettingsLayout.pickerInset)
+
+            ForEach(NotificationSound.displayOrder, id: \.self) { sound in
+                soundRow(sound)
+            }
         }
-        .frame(height: selector.expandedHeight(customSoundCount: customSounds.count))
-        .background(TerminalColors.subtleBackground)
-        .cornerRadius(8)
-        .padding(.top, SettingsLayout.pickerInset)
     }
 
     private var addCustomSoundRow: some View {
         Button(action: addCustomSound) {
             HStack {
                 Image(systemName: "plus")
-                    .font(.system(size: 10, weight: .medium))
+                    .panelFont(size: 10, weight: .medium)
                     .foregroundColor(TerminalColors.green)
                     .frame(width: 6, height: 6)
 
                 Text("Add")
-                    .font(.system(size: 11))
+                    .panelFont(size: 11)
                     .foregroundColor(TerminalColors.primaryText)
 
                 Spacer()
@@ -123,14 +116,14 @@ struct SoundPickerView: View {
                     .frame(width: 6, height: 6)
 
                 Text(sound.displayName)
-                    .font(.system(size: 11))
+                    .panelFont(size: 11)
                     .foregroundColor(selectedSound == .system(sound) ? TerminalColors.primaryText : TerminalColors.secondaryText)
 
                 Spacer()
 
                 if sound != .none {
                     Image(systemName: "speaker.wave.1")
-                        .font(.system(size: 9))
+                        .panelFont(size: 9)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
             }
@@ -153,7 +146,7 @@ struct SoundPickerView: View {
 
                     TextField("", text: $editingSoundName)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 11))
+                        .panelFont(size: 11)
                         .foregroundColor(TerminalColors.primaryText)
                         .accessibilityIdentifier(renameAccessibilityIdentifier(for: sound.id))
                         .focused($focusedRenameSoundID, equals: sound.id)
@@ -176,7 +169,7 @@ struct SoundPickerView: View {
                             .frame(width: 6, height: 6)
 
                         Text(sound.displayName)
-                            .font(.system(size: 11))
+                            .panelFont(size: 11)
                             .lineLimit(1)
                             .foregroundColor(selectedSound == .custom(sound.id) ? TerminalColors.primaryText : TerminalColors.secondaryText)
 
@@ -191,7 +184,7 @@ struct SoundPickerView: View {
                 beginInlineRename(sound)
             }) {
                 Image(systemName: "pencil")
-                    .font(.system(size: 9))
+                    .panelFont(size: 9)
                     .foregroundColor(TerminalColors.dimmedText)
                     .frame(width: 16, height: 16)
             }
@@ -201,7 +194,7 @@ struct SoundPickerView: View {
                 deleteCustomSound(sound)
             }) {
                 Image(systemName: "trash")
-                    .font(.system(size: 9))
+                    .panelFont(size: 9)
                     .foregroundColor(TerminalColors.dimmedText)
                     .frame(width: 16, height: 16)
             }

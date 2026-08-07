@@ -31,7 +31,7 @@ struct AssistantTextRowView: View {
 
             if isTruncatable {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .panelFont(size: 12, weight: .semibold)
                     .foregroundColor(TerminalColors.secondaryText)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
@@ -54,7 +54,7 @@ struct AssistantTextRowView: View {
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )
         return Text(attributed ?? AttributedString(truncatedText))
-            .font(.system(size: 13))
+            .panelFont(size: 13)
             .foregroundColor(.white)
             .lineLimit(2)
             .multilineTextAlignment(.leading)

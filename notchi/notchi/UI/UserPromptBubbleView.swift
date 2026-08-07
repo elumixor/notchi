@@ -6,7 +6,7 @@ struct UserPromptBubbleView: View {
 
     var body: some View {
         promptText
-            .font(.system(size: 13))
+            .panelFont(size: 13)
             .foregroundColor(.white)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)

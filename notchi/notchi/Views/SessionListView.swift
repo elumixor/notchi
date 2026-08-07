@@ -11,7 +11,7 @@ struct SessionListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Sessions")
-                .font(.system(size: 11, weight: .medium))
+                .panelFont(size: 11, weight: .medium)
                 .foregroundColor(TerminalColors.secondaryText)
                 .padding(.top, 8)
                 .padding(.bottom, 8)

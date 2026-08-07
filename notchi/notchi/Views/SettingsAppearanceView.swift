@@ -28,9 +28,83 @@ struct SettingsAppearanceView: View {
             }
             .buttonStyle(.plain)
 
+            PanelSizeSettingsView()
+
             NotchLayoutSettingsView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct PanelSizeSettingsView: View {
+    @AppStorage(AppSettings.expandedPanelScaleKey) private var scaleRaw = ExpandedPanelScale.automatic.rawValue
+    @State private var isExpanded = false
+
+    private var scale: ExpandedPanelScale { ExpandedPanelScale(rawValue: scaleRaw) ?? .automatic }
+
+    private func resolvedName(for option: ExpandedPanelScale) -> String {
+        option.resolved(visibleScreenHeight: NotchPanelManager.shared.visibleScreenHeight).displayName
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: { isExpanded.toggle() }) {
+                SettingsRowView(icon: "arrow.up.left.and.arrow.down.right", title: "Panel Size") {
+                    HStack(spacing: 4) {
+                        Text(scale.displayName)
+                            .panelFont(size: 11)
+                            .foregroundColor(TerminalColors.secondaryText)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .panelFont(size: 9)
+                            .foregroundColor(TerminalColors.dimmedText)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
+                    ForEach(ExpandedPanelScale.allCases) { option in
+                        optionRow(option)
+                    }
+                }
+                .padding(.vertical, SettingsLayout.pickerInset)
+                .background(TerminalColors.subtleBackground)
+                .cornerRadius(8)
+                .padding(.top, SettingsLayout.pickerInset)
+            }
+        }
+        .animation(.spring(response: 0.3), value: isExpanded)
+    }
+
+    private func optionRow(_ option: ExpandedPanelScale) -> some View {
+        let isSelected = scale == option
+        return Button(action: {
+            AppSettings.expandedPanelScale = option
+            isExpanded = false
+        }) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isSelected ? TerminalColors.green : Color.clear)
+                    .frame(width: 6, height: 6)
+                Text(option.displayName)
+                    .panelFont(size: 11, weight: .medium)
+                    .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.secondaryText)
+                    .lineLimit(1)
+                Spacer()
+                if option == .automatic {
+                    Text(resolvedName(for: option))
+                        .panelFont(size: 9)
+                        .foregroundColor(TerminalColors.dimmedText)
+                }
+            }
+            .padding(.horizontal, SettingsLayout.pickerOptionHorizontalPadding)
+            .padding(.vertical, SettingsLayout.pickerOptionVerticalPadding)
+            .background(isSelected ? TerminalColors.hoverBackground : Color.clear)
+            .cornerRadius(4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -62,10 +136,10 @@ private struct NotchLayoutSettingsView: View {
                 SettingsRowView(icon: icon, title: title) {
                     HStack(spacing: 4) {
                         Text(selection.displayName)
-                            .font(.system(size: 11))
+                            .panelFont(size: 11)
                             .foregroundColor(TerminalColors.secondaryText)
                         Image(systemName: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 9))
+                            .panelFont(size: 9)
                             .foregroundColor(TerminalColors.dimmedText)
                     }
                 }
@@ -79,18 +153,11 @@ private struct NotchLayoutSettingsView: View {
     }
 
     private func picker(_ side: Side) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(NotchSlotContent.allCases) { option in
-                    optionRow(side, option: option)
-                }
+        SettingsPicker(rowCount: NotchSlotContent.allCases.count) {
+            ForEach(NotchSlotContent.allCases) { option in
+                optionRow(side, option: option)
             }
-            .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: pickerHeight(optionCount: NotchSlotContent.allCases.count))
-        .background(TerminalColors.subtleBackground)
-        .cornerRadius(8)
-        .padding(.top, SettingsLayout.pickerInset)
     }
 
     private func optionRow(_ side: Side, option: NotchSlotContent) -> some View {
@@ -104,13 +171,13 @@ private struct NotchLayoutSettingsView: View {
                     .fill(isSelected ? TerminalColors.green : Color.clear)
                     .frame(width: 6, height: 6)
                 Text(option.displayName)
-                    .font(.system(size: 11, weight: .medium))
+                    .panelFont(size: 11, weight: .medium)
                     .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.secondaryText)
                     .lineLimit(1)
                 Spacer()
                 if let hint {
                     Text(hint)
-                        .font(.system(size: 9))
+                        .panelFont(size: 9)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
             }
@@ -141,10 +208,4 @@ private struct NotchLayoutSettingsView: View {
         }
     }
 
-    private func pickerHeight(optionCount: Int) -> CGFloat {
-        let rowHeight: CGFloat = 28
-        let rowSpacing: CGFloat = 4
-        let visibleCount = min(optionCount, 6)
-        return CGFloat(visibleCount) * rowHeight + CGFloat(max(visibleCount - 1, 0)) * rowSpacing
-    }
 }

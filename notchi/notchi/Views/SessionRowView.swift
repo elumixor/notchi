@@ -19,14 +19,14 @@ struct SessionRowView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 12, weight: .medium))
+                        .panelFont(size: 12, weight: .medium)
                         .foregroundColor(TerminalColors.primaryText)
                         .lineLimit(1)
                         .layoutPriority(1)
 
                     if let preview = session.activityPreview {
                         Text(preview)
-                            .font(.system(size: 10))
+                            .panelFont(size: 10)
                             .foregroundColor(TerminalColors.dimmedText)
                             .lineLimit(1)
                     }
@@ -36,7 +36,7 @@ struct SessionRowView: View {
 
                 Button(action: onDelete) {
                     Image(systemName: "trash")
-                        .font(.system(size: 11))
+                        .panelFont(size: 11)
                         .foregroundColor(TerminalColors.dimmedText.opacity(isTrashHovered ? 1 : 0.9))
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
