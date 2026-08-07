@@ -1,6 +1,12 @@
 import XCTest
 @testable import notchi
 
+private enum VisibleScreenHeight {
+    static let macBookAir15: CGFloat = 918
+    static let studioDisplay: CGFloat = 1415
+    static let lgSDQHD: CGFloat = 2855
+}
+
 final class NotchContentViewTests: XCTestCase {
     func testSameNonNothingContentsConflict() {
         XCTAssertTrue(NotchSlotContent.conflict(.ring, .ring))
@@ -253,6 +259,49 @@ final class NotchContentViewTests: XCTestCase {
         )
         XCTAssertFalse(
             UsageDetailView.usesTwoColumnLayout(rowCount: 3, hideGrassIsland: true, panelScale: 1)
+        )
+    }
+
+    func testAutomaticPicksStandardOnBuiltInLaptopHeights() {
+        XCTAssertEqual(
+            ExpandedPanelScale.automatic.resolved(visibleScreenHeight: VisibleScreenHeight.macBookAir15),
+            .standard
+        )
+    }
+
+    func testAutomaticPicksLargeOnTallExternalDisplays() {
+        XCTAssertEqual(
+            ExpandedPanelScale.automatic.resolved(visibleScreenHeight: VisibleScreenHeight.studioDisplay),
+            .large
+        )
+    }
+
+    func testAutomaticTurnsLargeExactlyAtTheThreshold() {
+        let threshold = ExpandedPanelScale.automaticLargeMinimumHeight
+
+        XCTAssertEqual(ExpandedPanelScale.automatic.resolved(visibleScreenHeight: threshold), .large)
+        XCTAssertEqual(ExpandedPanelScale.automatic.resolved(visibleScreenHeight: threshold - 1), .standard)
+    }
+
+    func testExplicitChoiceOverridesScreenHeightInBothDirections() {
+        XCTAssertEqual(
+            ExpandedPanelScale.standard.resolved(visibleScreenHeight: VisibleScreenHeight.lgSDQHD),
+            .standard
+        )
+        XCTAssertEqual(
+            ExpandedPanelScale.large.resolved(visibleScreenHeight: VisibleScreenHeight.macBookAir15),
+            .large
+        )
+    }
+
+    func testAutomaticMultiplierFollowsTheResolvedChoice() {
+        XCTAssertEqual(
+            ExpandedPanelScale.automatic.resolved(visibleScreenHeight: VisibleScreenHeight.macBookAir15).multiplier,
+            1
+        )
+        XCTAssertEqual(
+            ExpandedPanelScale.automatic.resolved(visibleScreenHeight: VisibleScreenHeight.lgSDQHD).multiplier,
+            1.25
         )
     }
 

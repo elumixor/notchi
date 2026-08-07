@@ -60,6 +60,7 @@ final class NotchPanelManager {
     private(set) var compactNotchRect: CGRect = .zero
     private(set) var panelRect: CGRect = .zero
     private(set) var panelScale: CGFloat = 1
+    private(set) var visibleScreenHeight: CGFloat = 0
     /// The exact notch shape from the system bezel path, or nil if unavailable
     private(set) var systemNotchPath: CGPath?
 
@@ -142,7 +143,8 @@ final class NotchPanelManager {
 
         compactNotchRect = Self.makeCompactNotchRect(notchSize: newNotchSize, notchRect: notchRect)
 
-        panelScale = AppSettings.expandedPanelScale.multiplier
+        visibleScreenHeight = screen.visibleFrame.height
+        panelScale = AppSettings.expandedPanelScale.resolved(visibleScreenHeight: visibleScreenHeight).multiplier
         SettingsLayout.scale = panelScale
 
         let panelSize = NotchConstants.panelSize(scale: panelScale)

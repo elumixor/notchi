@@ -37,10 +37,14 @@ struct SettingsAppearanceView: View {
 }
 
 private struct PanelSizeSettingsView: View {
-    @AppStorage(AppSettings.expandedPanelScaleKey) private var scaleRaw = ExpandedPanelScale.standard.rawValue
+    @AppStorage(AppSettings.expandedPanelScaleKey) private var scaleRaw = ExpandedPanelScale.automatic.rawValue
     @State private var isExpanded = false
 
-    private var scale: ExpandedPanelScale { ExpandedPanelScale(rawValue: scaleRaw) ?? .standard }
+    private var scale: ExpandedPanelScale { ExpandedPanelScale(rawValue: scaleRaw) ?? .automatic }
+
+    private func resolvedName(for option: ExpandedPanelScale) -> String {
+        option.resolved(visibleScreenHeight: NotchPanelManager.shared.visibleScreenHeight).displayName
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -88,6 +92,11 @@ private struct PanelSizeSettingsView: View {
                     .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.secondaryText)
                     .lineLimit(1)
                 Spacer()
+                if option == .automatic {
+                    Text(resolvedName(for: option))
+                        .panelFont(size: 9)
+                        .foregroundColor(TerminalColors.dimmedText)
+                }
             }
             .padding(.horizontal, SettingsLayout.pickerOptionHorizontalPadding)
             .padding(.vertical, SettingsLayout.pickerOptionVerticalPadding)
