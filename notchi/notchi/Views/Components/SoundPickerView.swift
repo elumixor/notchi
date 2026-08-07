@@ -72,7 +72,7 @@ struct SoundPickerView: View {
 
     private var expandedPicker: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
                 addCustomSoundRow
 
                 ForEach(customSounds) { sound in

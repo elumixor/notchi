@@ -63,7 +63,7 @@ private struct PanelSizeSettingsView: View {
             .buttonStyle(.plain)
 
             if isExpanded {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
                     ForEach(ExpandedPanelScale.allCases) { option in
                         optionRow(option)
                     }
@@ -154,7 +154,7 @@ private struct NotchLayoutSettingsView: View {
 
     private func picker(_ side: Side) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
                 ForEach(NotchSlotContent.allCases) { option in
                     optionRow(side, option: option)
                 }

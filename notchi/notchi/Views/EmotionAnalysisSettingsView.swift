@@ -94,14 +94,14 @@ struct EmotionAnalysisSettingsView: View {
 
     private var providerPicker: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
                 ForEach(EmotionAnalysisProvider.allCases) { option in
                     providerRow(option)
                 }
             }
             .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: pickerHeight(optionCount: EmotionAnalysisProvider.allCases.count))
+        .frame(height: SettingsLayout.pickerViewportHeight(rowCount: EmotionAnalysisProvider.allCases.count))
         .background(TerminalColors.subtleBackground)
         .cornerRadius(8)
         .padding(.top, SettingsLayout.pickerInset)
@@ -349,14 +349,14 @@ struct EmotionAnalysisSettingsView: View {
 
     private var modelPicker: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: SettingsLayout.pickerRowSpacing) {
                 ForEach(EmotionAnalysisModel.models(for: provider)) { option in
                     modelRow(option)
                 }
             }
             .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: pickerHeight(optionCount: EmotionAnalysisModel.models(for: provider).count))
+        .frame(height: SettingsLayout.pickerViewportHeight(rowCount: EmotionAnalysisModel.models(for: provider).count))
         .background(TerminalColors.subtleBackground)
         .cornerRadius(8)
         .padding(.top, SettingsLayout.pickerInset)
@@ -385,12 +385,6 @@ struct EmotionAnalysisSettingsView: View {
         .buttonStyle(.plain)
     }
 
-    private func pickerHeight(optionCount: Int) -> CGFloat {
-        let rowHeight: CGFloat = 28
-        let rowSpacing: CGFloat = 4
-        let visibleCount = min(optionCount, 6)
-        return CGFloat(visibleCount) * rowHeight + CGFloat(max(visibleCount - 1, 0)) * rowSpacing
-    }
 
     private var fallbackStatusText: String {
         if provider == .claude, hasClaudeCodeFallback {
