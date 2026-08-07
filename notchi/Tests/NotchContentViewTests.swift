@@ -336,11 +336,40 @@ final class NotchContentViewTests: XCTestCase {
     }
 
     func testPanelSizeScalesEverythingExceptTheOuterChrome() {
-        let scale: CGFloat = 1.5
+        let scale = ExpandedPanelScale.large.multiplier
 
         let size = NotchConstants.panelSize(scale: scale)
 
         XCTAssertEqual(size.height, (450 - 24) * scale + 24, accuracy: 0.001)
+        XCTAssertEqual(
+            size.width,
+            (450 - NotchConstants.expandedPanelContentInset) * scale
+                + NotchConstants.expandedPanelHorizontalPadding
+                + NotchConstants.expandedPanelHitTestSlack,
+            accuracy: 0.001
+        )
+    }
+
+    func testPickerViewportGrowsWithTheScaledRows() {
+        SettingsLayout.scale = 1
+        let standard = SettingsLayout.pickerViewportHeight(rowCount: 5)
+
+        SettingsLayout.scale = ExpandedPanelScale.large.multiplier
+        let large = SettingsLayout.pickerViewportHeight(rowCount: 5)
+        SettingsLayout.scale = 1
+
+        XCTAssertEqual(standard, 5 * 28 + 4 * 4)
+        XCTAssertEqual(large, standard * ExpandedPanelScale.large.multiplier, accuracy: 0.001)
+    }
+
+    func testPickerViewportStopsGrowingPastTheVisibleRowLimit() {
+        SettingsLayout.scale = 1
+        defer { SettingsLayout.scale = 1 }
+
+        XCTAssertEqual(
+            SettingsLayout.pickerViewportHeight(rowCount: 20),
+            SettingsLayout.pickerViewportHeight(rowCount: 6)
+        )
     }
 
 

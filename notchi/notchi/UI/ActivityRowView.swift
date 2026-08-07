@@ -56,9 +56,16 @@ struct ActivityRowView: View {
 }
 
 private struct InlineAnswerTextField: NSViewRepresentable {
+    static let baseFontSize: CGFloat = 10
+
     @Binding var text: String
     let isFocused: Bool
+    let panelScale: CGFloat
     let onSubmit: (String) -> Void
+
+    private var scaledFontSize: CGFloat {
+        Self.baseFontSize * PanelTypography.fontScale(panelScale: panelScale)
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -77,7 +84,7 @@ private struct InlineAnswerTextField: NSViewRepresentable {
         textField.drawsBackground = false
         textField.focusRingType = .none
         textField.placeholderString = String(localized: "Type answer")
-        textField.font = .systemFont(ofSize: 10)
+        textField.font = .systemFont(ofSize: scaledFontSize)
         textField.textColor = .white
         textField.lineBreakMode = .byTruncatingTail
         textField.cell?.usesSingleLineMode = true
@@ -88,6 +95,7 @@ private struct InlineAnswerTextField: NSViewRepresentable {
 
     func updateNSView(_ textField: NSTextField, context: Context) {
         context.coordinator.parent = self
+        textField.font = .systemFont(ofSize: scaledFontSize)
         if let textField = textField as? SubmittingTextField {
             textField.onSubmitText = { submittedText in
                 context.coordinator.submit(submittedText)
@@ -165,6 +173,8 @@ private struct InlineAnswerTextField: NSViewRepresentable {
 }
 
 struct QuestionPromptView: View {
+    @Environment(\.panelScale) private var panelScale
+
     let questions: [PendingQuestion]
     let provider: AgentProvider
     let responseHint: String?
@@ -377,10 +387,10 @@ struct QuestionPromptView: View {
                         customAnswersByQuestion[questionIndex] = newValue
                         selectedOptionIndexesByQuestion[questionIndex] = nil
                     }
-                ), isFocused: focusedFreeTextQuestionIndex == questionIndex) { submittedText in
+                ), isFocused: focusedFreeTextQuestionIndex == questionIndex, panelScale: panelScale) { submittedText in
                     submitFreeTextAnswer(submittedText, for: questionIndex)
                 }
-                .frame(height: 14)
+                .frame(height: 14 * PanelTypography.fontScale(panelScale: panelScale))
             }
 
             Spacer(minLength: 8)

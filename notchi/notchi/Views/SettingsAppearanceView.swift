@@ -161,7 +161,7 @@ private struct NotchLayoutSettingsView: View {
             }
             .padding(.vertical, SettingsLayout.pickerInset)
         }
-        .frame(height: pickerHeight(optionCount: NotchSlotContent.allCases.count))
+        .frame(height: SettingsLayout.pickerViewportHeight(rowCount: NotchSlotContent.allCases.count))
         .background(TerminalColors.subtleBackground)
         .cornerRadius(8)
         .padding(.top, SettingsLayout.pickerInset)
@@ -215,10 +215,4 @@ private struct NotchLayoutSettingsView: View {
         }
     }
 
-    private func pickerHeight(optionCount: Int) -> CGFloat {
-        let rowHeight: CGFloat = 28
-        let rowSpacing: CGFloat = 4
-        let visibleCount = min(optionCount, 6)
-        return CGFloat(visibleCount) * rowHeight + CGFloat(max(visibleCount - 1, 0)) * rowSpacing
-    }
 }

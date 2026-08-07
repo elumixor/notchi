@@ -18,4 +18,12 @@ enum SettingsLayout {
     static var pickerInset: CGFloat { 6 * scale }
     static var pickerOptionHorizontalPadding: CGFloat { 10 * scale }
     static var pickerOptionVerticalPadding: CGFloat { 5 * scale }
+    static var pickerRowHeight: CGFloat { 28 * scale }
+    static var pickerRowSpacing: CGFloat { 4 * scale }
+
+    static func pickerViewportHeight(rowCount: Int, maxVisibleRows: Int = 6) -> CGFloat {
+        let visibleCount = min(rowCount, maxVisibleRows)
+        return CGFloat(visibleCount) * pickerRowHeight
+            + CGFloat(max(visibleCount - 1, 0)) * pickerRowSpacing
+    }
 }
