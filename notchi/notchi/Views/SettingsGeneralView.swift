@@ -7,11 +7,10 @@ private let logger = Logger(subsystem: "com.ruban.notchi", category: "SettingsGe
 struct SettingsGeneralView: View {
     @State private var panelToggleShortcut = AppSettings.panelToggleShortcut
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @AppStorage(AppSettings.expandOnHoverKey) private var expandOnHover = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
-            ScreenPickerRow(screenSelector: ScreenSelector.shared)
-
             SoundPickerView()
 
             SettingsRowView(icon: "keyboard", title: "Toggle Panel") {
@@ -23,6 +22,15 @@ struct SettingsGeneralView: View {
                     onShortcutChange: updatePanelToggleShortcut
                 )
             }
+
+            Divider().background(Color.white.opacity(0.08))
+
+            Button(action: { expandOnHover.toggle() }) {
+                SettingsRowView(icon: "cursorarrow.motionlines", title: "Expand on Hover") {
+                    ToggleSwitch(isOn: expandOnHover)
+                }
+            }
+            .buttonStyle(.plain)
 
             Button(action: toggleLaunchAtLogin) {
                 SettingsRowView(icon: "power", title: "Launch at Login") {
