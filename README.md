@@ -11,6 +11,7 @@ https://github.com/user-attachments/assets/e417bd40-cae8-47c0-998a-905166cf3513
 - Reacts to Claude Code and Codex events in real-time (thinking, working, permission requests, compaction, errors, completions)
 - Analyzes prompt sentiment via Anthropic or OpenAI APIs to show emotions (happy, elated, sad, neutral, sob)
 - Click to expand and see session time and usage quota
+- Tracks daily cost and token usage over the last 30 days, per provider or combined
 - Supports multiple concurrent sessions, each with its own mascot from the Claude or Codex sprite family
 - Sound effects for events with support for importable custom sounds (optional, auto-muted when terminal is focused)
 - Available in English, 日本語, 简体中文 / 繁體中文, 한국어, and Tiếng Việt (follows your system language)
@@ -26,7 +27,7 @@ https://github.com/user-attachments/assets/e417bd40-cae8-47c0-998a-905166cf3513
 
 1. [Download the latest DMG][dmg] (all versions are on the [releases page](https://github.com/sk-ruban/notchi/releases))
 2. Open the DMG and drag Notchi to Applications
-3. Launch Notchi — it auto-installs Claude Code and Codex hooks on first launch (whichever are present)
+3. Launch Notchi, it auto-installs Claude Code and Codex hooks on first launch (whichever are present)
 4. If a macOS keychain popup appears asking for access (used for API usage stats), click **Always Allow** so it won't prompt again
 
    <img src="assets/keychain-popup.png" alt="Keychain access popup" width="450">
@@ -65,9 +66,9 @@ Notchi is free and open source. If it's useful to you, you can [sponsor developm
 
 ## Credits
 
-- [Claude Island](https://github.com/farouqaldori/claude-island) — design inspiration for the app
-- [Readout](https://readout.org) — design inspiration for [notchi.app](https://notchi.app)
-- [Aseprite](https://www.aseprite.org/) — sprite design
+- [Claude Island](https://github.com/farouqaldori/claude-island): design inspiration for the app
+- [Readout](https://readout.org): design inspiration for [notchi.app](https://notchi.app)
+- [Aseprite](https://www.aseprite.org/): sprite design
 
 ## License
 
