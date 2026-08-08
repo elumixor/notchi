@@ -121,7 +121,16 @@ struct UsageDetailView: View {
             windowStart: windowStart, today: today, calendar: calendar)
     }
 
+    static func chartHeight(hideGrassIsland: Bool) -> CGFloat {
+        hideGrassIsland ? 150 : CostDashboardView.defaultChartHeight
+    }
+
+    static func sectionSpacing(hideGrassIsland: Bool) -> CGFloat {
+        hideGrassIsland ? 15 : 10
+    }
+
     @ViewBuilder private var costDashboard: some View {
+        let chartHeight = Self.chartHeight(hideGrassIsland: hideGrassIsland)
         switch resolvedTab {
         case .provider(let provider):
             let stores = provider == .codex
@@ -129,12 +138,14 @@ struct UsageDetailView: View {
                 : (main: costStore, peer: codexCostStore)
             CostDashboardView(
                 report: stores.main.report,
-                sizingPeerReports: [stores.peer.report, combinedReport].compactMap { $0 })
+                sizingPeerReports: [stores.peer.report, combinedReport].compactMap { $0 },
+                chartHeight: chartHeight)
         case .all:
             CostDashboardView(
                 report: combinedReport,
                 sizingPeerReports: [costStore.report, codexCostStore.report].compactMap { $0 },
-                combinesProviders: true)
+                combinesProviders: true,
+                chartHeight: chartHeight)
         }
     }
 
@@ -162,12 +173,12 @@ struct UsageDetailView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Self.sectionSpacing(hideGrassIsland: hideGrassIsland)) {
             header
                 .padding(.bottom, -4)
 
             costDashboard
-                .padding(.bottom, 2)
+                .padding(.bottom, hideGrassIsland ? 2 : -4)
 
             if case .provider = resolvedTab {
                 if Self.usesTwoColumnLayout(
