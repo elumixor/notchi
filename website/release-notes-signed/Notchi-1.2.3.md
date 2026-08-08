@@ -1,0 +1,30 @@
+<!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires updating signatures in appcasts that reference this file! This will involve re-running generate_appcast or sign_update.
+-->
+# Notchi 1.2.3
+
+This release adds a panel size setting, a combined cost view for both providers, and pricing coverage for Codex automatic reviews.
+
+## Panel
+
+- Adds a Panel Size setting with Automatic, Standard, and Large options; Automatic picks the size from your screen height
+- Scales the whole expanded panel with the chosen size, including sprites, text, the activity feed, and charts
+- Fills the expanded panel better when the grass island is hidden, with a taller cost chart
+- Keeps the header buttons proportional in the Large size
+
+## Usage and Cost
+
+- Adds an All tab that combines Claude and Codex costs in one chart
+- Ticks with haptic feedback when hover-scrubbing across chart bars
+- Prices Codex automatic reviews at their underlying model rates, so the partial pricing warning no longer appears for them
+- Keeps the pricing warning label from pushing usage rows out of the panel
+
+## Settings
+
+- Moves Screen and Panel Size into Appearance, and Expand on Hover into General
+- Adds Report an Issue and Sponsor rows to settings
+
+## Fixes
+
+- Runs hook scripts with Python isolated mode, so projects containing files named after standard library modules no longer break hook events
+- Shows Checking for Updates only while a check is actually running
