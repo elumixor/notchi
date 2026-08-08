@@ -15,7 +15,7 @@ nonisolated struct CostUsageCache: Codable, Equatable {
         var codexResume: CodexResume? = nil
     }
 
-    static let currentVersion = 1
+    static let currentVersion = 2
     var version: Int
     var files: [String: FileState]
     var buckets: DayModelBuckets

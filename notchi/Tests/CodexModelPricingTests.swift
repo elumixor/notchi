@@ -79,6 +79,10 @@ final class CodexModelPricingTests: XCTestCase {
         XCTAssertEqual(CostPricing.normalizeOpenAIModel("openai/gpt-5.4-2025-03-15"), "gpt-5.4")
     }
 
+    func testNormalizeOpenAIModelAliasesAutoReviewToSol() {
+        XCTAssertEqual(CostPricing.normalizeOpenAIModel("codex-auto-review"), "gpt-5.6-sol")
+    }
+
     func testPlausibilityGuardAcceptsGpt5TableAndRejectsClaudeOnly() {
         let anyPricing = ClaudeModelPricing(
             inputPerToken: 5e-6, outputPerToken: 3e-5,
