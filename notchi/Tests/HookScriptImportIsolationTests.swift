@@ -6,6 +6,11 @@ final class HookScriptImportIsolationTests: XCTestCase {
     private static let hookTimeout: TimeInterval = 5
     private static let bundledHookNames = ["notchi-hook", "notchi-codex-hook"]
 
+    private static let agentLikeEnvironment = [
+        "PATH": "/usr/bin:/bin:/usr/sbin:/sbin",
+        "HOME": NSHomeDirectory(),
+    ]
+
     private var stagingDirectory: URL?
     private var startedServers: [(server: SocketServer, path: String)] = []
 
@@ -43,6 +48,8 @@ final class HookScriptImportIsolationTests: XCTestCase {
     }
 
     func testClaudePermissionResponseReachesStdoutFromDirectoryShadowingStdlib() async throws {
+        try skipUnlessStdlibPythonRuns()
+
         let decision = #"{"decision":"allow"}"#
         let recorder = EventRecorder()
         let socketPath = uniqueSocketPath()
@@ -93,12 +100,36 @@ final class HookScriptImportIsolationTests: XCTestCase {
 
     // MARK: - Assertions
 
+    private func skipUnlessStdlibPythonRuns() throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/python3")
+        process.arguments = ["-I", "-c", "import json, socket, subprocess"]
+        process.environment = Self.agentLikeEnvironment
+
+        let error = Pipe()
+        process.standardOutput = Pipe()
+        process.standardError = error
+
+        try process.run()
+        let errorData = error.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        guard process.terminationStatus != 0 else { return }
+
+        throw XCTSkip(
+            "/usr/bin/python3 cannot run here, so hook behaviour is untestable: "
+                + String(decoding: errorData, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
+
     private func assertHookDeliversEvent(
         scriptName: String,
         sessionId: String,
         file: StaticString = #filePath,
         line: UInt = #line
     ) async throws {
+        try skipUnlessStdlibPythonRuns()
+
         let recorder = EventRecorder()
         let socketPath = uniqueSocketPath()
         try await startServer(at: socketPath, recorder: recorder)
@@ -208,6 +239,7 @@ final class HookScriptImportIsolationTests: XCTestCase {
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         process.arguments = [script.path]
         process.currentDirectoryURL = workingDirectory
+        process.environment = Self.agentLikeEnvironment
 
         let input = Pipe()
         let output = Pipe()
