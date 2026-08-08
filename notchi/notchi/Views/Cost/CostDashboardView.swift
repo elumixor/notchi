@@ -49,11 +49,12 @@ struct CostDashboardView: View {
     let report: DailyCostReport?
     var sizingPeerReports: [DailyCostReport] = []
     var combinesProviders = false
+    var chartHeight: CGFloat = Self.defaultChartHeight
 
     @Environment(\.panelScale) private var panelScale
     @State private var selected: DailyCostReport.DayEntry?
 
-    private var scaledChartHeight: CGFloat { Self.chartHeight * panelScale }
+    private var scaledChartHeight: CGFloat { chartHeight * panelScale }
     private var scaledStatRowHeight: CGFloat { Self.statRowHeight * panelScale }
 
     private func currentEntry(_ r: DailyCostReport) -> DailyCostReport.DayEntry? {
@@ -66,11 +67,14 @@ struct CostDashboardView: View {
         VStack(alignment: .leading, spacing: Self.sectionSpacing) {
             if let report {
                 statsRow(report)
-                chart(report)
-                if report.entries.contains(where: { $0.requestCount > 0 && $0.pricedFraction < 1 }) {
-                    Text("Some models lack pricing — cost is partial")
-                        .panelFont(size: 10)
-                        .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 5) {
+                    chart(report)
+                    if report.entries.contains(where: { $0.requestCount > 0 && $0.pricedFraction < 1 }) {
+                        Text("Some models lack pricing — cost is partial")
+                            .panelFont(size: 10)
+                            .foregroundStyle(.orange)
+                            .padding(.bottom, -9)
+                    }
                 }
             } else {
                 Text("Scanning usage…")
@@ -215,7 +219,7 @@ struct CostDashboardView: View {
         var id: Int { segment.rank }
     }
 
-    private static let chartHeight: CGFloat = 105
+    static let defaultChartHeight: CGFloat = 105
     private static let segmentGapPixels = 1.0
     private static let hoverGracePixels: CGFloat = 12
     private static let halfDay: TimeInterval = 43_200

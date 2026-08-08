@@ -3,10 +3,15 @@ import SwiftUI
 struct SettingsAppearanceView: View {
     @AppStorage(AppSettings.hideSpriteWhenIdleKey) private var hideSpriteWhenIdle = false
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
-    @AppStorage(AppSettings.expandOnHoverKey) private var expandOnHover = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
+            ScreenPickerRow(screenSelector: ScreenSelector.shared)
+
+            PanelSizeSettingsView()
+
+            Divider().background(Color.white.opacity(0.08))
+
             Button(action: { hideSpriteWhenIdle.toggle() }) {
                 SettingsRowView(icon: "pip.exit", title: "Hide Sprite When Idle") {
                     ToggleSwitch(isOn: hideSpriteWhenIdle)
@@ -21,14 +26,7 @@ struct SettingsAppearanceView: View {
             }
             .buttonStyle(.plain)
 
-            Button(action: { expandOnHover.toggle() }) {
-                SettingsRowView(icon: "cursorarrow.motionlines", title: "Expand on Hover") {
-                    ToggleSwitch(isOn: expandOnHover)
-                }
-            }
-            .buttonStyle(.plain)
-
-            PanelSizeSettingsView()
+            Divider().background(Color.white.opacity(0.08))
 
             NotchLayoutSettingsView()
         }

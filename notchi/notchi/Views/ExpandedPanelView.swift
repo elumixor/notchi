@@ -791,19 +791,20 @@ struct PanelHeaderButton: View {
     @State private var isHovered = false
 
     var body: some View {
+        let buttonScale: CGFloat = panelScale > 1 ? 17 / 16 : 1
         Button(action: action) {
             Image(systemName: sfSymbol)
-                .panelIcon(size: 16, weight: .medium)
+                .font(.system(size: 16 * buttonScale, weight: .medium))
                 .foregroundColor(.white.opacity(0.7))
-                .frame(width: Self.baseSize * panelScale, height: Self.baseSize * panelScale)
+                .frame(width: Self.baseSize * buttonScale, height: Self.baseSize * buttonScale)
                 .background(isHovered ? TerminalColors.hoverBackground : TerminalColors.subtleBackground)
                 .clipShape(Circle())
                 .overlay(alignment: .topTrailing) {
                     if showsIndicator {
                         Circle()
                             .fill(TerminalColors.red)
-                            .frame(width: 6 * panelScale, height: 6 * panelScale)
-                            .offset(x: -6 * panelScale, y: 6 * panelScale)
+                            .frame(width: 6 * buttonScale, height: 6 * buttonScale)
+                            .offset(x: -6 * buttonScale, y: 6 * buttonScale)
                     }
                 }
         }

@@ -29,6 +29,7 @@ nonisolated enum CostPricing {
         var s = raw
         if s.hasPrefix("openai/") { s = String(s.dropFirst("openai/".count)) }
         if let r = s.range(of: #"-\d{4}-\d{2}-\d{2}$"#, options: .regularExpression) { s.removeSubrange(r) }
+        if s == "codex-auto-review" { return "gpt-5.6-sol" }
         return s
     }
 
