@@ -17,7 +17,7 @@ done
 export NOTCHI_INTERACTIVE=$IS_INTERACTIVE
 
 # Parse input and send to socket using Python
-/usr/bin/python3 -c "
+/usr/bin/python3 -I -c "
 import json
 import os
 import socket
@@ -161,3 +161,5 @@ try:
 except:
     pass
 "
+
+exit 0

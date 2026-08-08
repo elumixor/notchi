@@ -5,15 +5,18 @@ import Sparkle
 final class NotchiUpdateUserDriver: NSObject, SPUUserDriver {
     private let standardUserDriver: SPUStandardUserDriver
     private let shouldHandleUpdaterErrorsInline: () -> Bool
+    private let didBeginUpdateCheck: (@escaping () -> Void) -> Void
     private let didFinishCustomSession: () -> Void
 
     init(
         standardUserDriver: SPUStandardUserDriver,
         shouldHandleUpdaterErrorsInline: @escaping () -> Bool,
+        didBeginUpdateCheck: @escaping (@escaping () -> Void) -> Void,
         didFinishCustomSession: @escaping () -> Void
     ) {
         self.standardUserDriver = standardUserDriver
         self.shouldHandleUpdaterErrorsInline = shouldHandleUpdaterErrorsInline
+        self.didBeginUpdateCheck = didBeginUpdateCheck
         self.didFinishCustomSession = didFinishCustomSession
     }
 
@@ -22,6 +25,7 @@ final class NotchiUpdateUserDriver: NSObject, SPUUserDriver {
     }
 
     func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {
+        didBeginUpdateCheck(cancellation)
         standardUserDriver.showUserInitiatedUpdateCheck(cancellation: cancellation)
     }
 

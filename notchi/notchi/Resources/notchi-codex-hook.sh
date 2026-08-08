@@ -5,7 +5,7 @@ SOCKET_PATH="/tmp/notchi.sock"
 
 [ -S "$SOCKET_PATH" ] || exit 0
 
-/usr/bin/python3 -c "
+/usr/bin/python3 -I -c "
 import json
 import os
 import socket
@@ -173,3 +173,5 @@ try:
 except Exception:
     pass
 "
+
+exit 0

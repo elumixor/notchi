@@ -24,6 +24,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
     private lazy var updateUserDriver = NotchiUpdateUserDriver(
         standardUserDriver: standardUserDriver,
         shouldHandleUpdaterErrorsInline: { UpdateManager.shared.shouldHandleUpdaterErrorInline },
+        didBeginUpdateCheck: { cancellation in
+            UpdateManager.shared.beginChecking(cancellation: cancellation)
+        },
         didFinishCustomSession: { [weak self] in
             UpdateManager.shared.finishUpdateSession()
             self?.restoreAccessoryModeIfNeeded()
@@ -213,13 +216,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
     private func startUpdater() {
         guard !updaterStarted else { return }
 
-        UpdateManager.shared.setUpdater(updater)
         do {
             try updater.start()
         } catch {
             logger.error("Failed to start Sparkle updater: \(error.localizedDescription, privacy: .public)")
             return
         }
+        UpdateManager.shared.setUpdater(updater)
         updaterStarted = true
     }
 
@@ -281,6 +284,10 @@ extension AppDelegate {
     ) -> Bool {
         UpdateManager.shared.readyToInstall(version: item.displayVersionString)
         return false
+    }
+
+    func updater(_ updater: SPUUpdater, didFinishUpdateCycleFor updateCheck: SPUUpdateCheck, error: Error?) {
+        UpdateManager.shared.finishUpdateSession()
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
