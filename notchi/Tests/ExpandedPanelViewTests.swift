@@ -103,6 +103,61 @@ final class ExpandedPanelViewTests: XCTestCase {
         XCTAssertEqual(state?.usage?.usagePercentage, 11)
     }
 
+    func testContextSessionProviderFallsBackWhenItHasNoDataForSelectedPeriod() {
+        // e.g. Weekly is selected, the context session is Codex, but Codex has no weekly quota
+        // yet while Claude does — the bar should show Claude's data rather than an empty Codex bar.
+        let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
+        let claude = makeUsageState(provider: .claude, usage: 42, observedAt: Date(timeIntervalSince1970: 100))
+        let codexWithoutDataForPeriod = makeUsageState(provider: .codex, usage: nil, observedAt: Date(timeIntervalSince1970: 200))
+
+        let state = ExpandedPanelView.sharedUsageBarState(
+            contextSession: codexSession,
+            claude: claude,
+            codex: codexWithoutDataForPeriod
+        )
+
+        XCTAssertEqual(state?.provider, .claude)
+        XCTAssertEqual(state?.usage?.usagePercentage, 42)
+    }
+
+    func testContextSessionProviderWinsWhenNeitherProviderHasDataForSelectedPeriod() {
+        let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
+        let claude = makeUsageState(provider: .claude, usage: nil, observedAt: Date(timeIntervalSince1970: 100))
+        let codex = makeUsageState(provider: .codex, usage: nil, observedAt: Date(timeIntervalSince1970: 200))
+
+        let state = ExpandedPanelView.sharedUsageBarState(
+            contextSession: codexSession,
+            claude: claude,
+            codex: codex
+        )
+
+        XCTAssertEqual(state?.provider, .codex)
+        XCTAssertNil(state?.usage)
+    }
+
+    func testRecencyArbitrationFallsBackWhenTheNewerProviderHasNoDataForSelectedPeriod() {
+        let claude = makeUsageState(provider: .claude, usage: 42, observedAt: Date(timeIntervalSince1970: 100))
+        let codexNewerButWithoutDataForPeriod = makeUsageState(
+            provider: .codex, usage: nil, observedAt: Date(timeIntervalSince1970: 200)
+        )
+
+        let state = ExpandedPanelView.sharedUsageBarState(
+            contextSession: nil,
+            claude: claude,
+            codex: codexNewerButWithoutDataForPeriod
+        )
+
+        XCTAssertEqual(state?.provider, .claude)
+        XCTAssertEqual(state?.usage?.usagePercentage, 42)
+    }
+
+    func testExtraUsageIndicatorOnlyAppliesToTheSessionPeriod() {
+        XCTAssertTrue(ExpandedPanelView.mainUsageIsUsingExtraUsage(for: .session, isUsingExtraUsage: true))
+        XCTAssertFalse(ExpandedPanelView.mainUsageIsUsingExtraUsage(for: .weekly, isUsingExtraUsage: true))
+        XCTAssertFalse(ExpandedPanelView.mainUsageIsUsingExtraUsage(for: .session, isUsingExtraUsage: false))
+        XCTAssertFalse(ExpandedPanelView.mainUsageIsUsingExtraUsage(for: .weekly, isUsingExtraUsage: false))
+    }
+
     func testHoveredSessionProviderDrivesUsageState() {
         let hoveredCodexSession = SessionData(sessionId: "hovered-codex-session", provider: .codex, cwd: "/tmp/project")
         let claude = makeUsageState(provider: .claude, usage: 42, observedAt: Date(timeIntervalSince1970: 200))
@@ -260,12 +315,12 @@ final class ExpandedPanelViewTests: XCTestCase {
 
     private func makeUsageState(
         provider: AgentProvider,
-        usage: Double,
+        usage: Double?,
         observedAt: Date
     ) -> SharedUsageBarState {
         SharedUsageBarState(
             provider: provider,
-            usage: QuotaPeriod(utilization: usage, resetDate: Date(timeIntervalSince1970: 1_000)),
+            usage: usage.map { QuotaPeriod(utilization: $0, resetDate: Date(timeIntervalSince1970: 1_000)) },
             isUsingExtraUsage: false,
             isLoading: false,
             error: nil,

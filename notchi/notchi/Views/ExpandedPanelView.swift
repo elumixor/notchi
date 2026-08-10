@@ -310,7 +310,7 @@ struct ExpandedPanelView: View {
         let claude = includesClaude ? SharedUsageBarState(
             provider: .claude,
             usage: Self.mainUsage(for: period, sessionUsage: usageService.currentUsage, weeklyUsage: usageService.currentWeeklyUsage),
-            isUsingExtraUsage: usageService.isUsingExtraUsage,
+            isUsingExtraUsage: Self.mainUsageIsUsingExtraUsage(for: period, isUsingExtraUsage: usageService.isUsingExtraUsage),
             isLoading: usageService.isLoading,
             error: usageService.error,
             statusMessage: usageService.statusMessage,
@@ -615,6 +615,13 @@ struct ExpandedPanelView: View {
         }
     }
 
+    /// The "Extra Usage" badge reflects overflow past the five-hour session quota, so it's only
+    /// meaningful when the session period is the one being displayed — showing it next to the
+    /// weekly percentage would misleadingly imply the weekly quota is what's overflowing.
+    static func mainUsageIsUsingExtraUsage(for period: MainUsageBarPeriod, isUsingExtraUsage: Bool) -> Bool {
+        period == .session && isUsingExtraUsage
+    }
+
     static func sharedUsageBarIsEnabled(
         provider: AgentProvider,
         appUsageEnabled: Bool = AppSettings.isUsageEnabled
@@ -640,18 +647,17 @@ struct ExpandedPanelView: View {
         }
 
         if let contextSession {
-            switch contextSession.provider {
-            case .claude:
-                return claude
-            case .codex:
-                return codex
-            }
+            let preferred = contextSession.provider == .claude ? claude : codex
+            let fallback = contextSession.provider == .claude ? codex : claude
+            return preferredOrFallback(preferred, fallback)
         }
 
         if let claudeObservedAt = claude.lastObservedAt,
            let codexObservedAt = codex.lastObservedAt,
            claudeObservedAt != codexObservedAt {
-            return codexObservedAt > claudeObservedAt ? codex : claude
+            let newer = codexObservedAt > claudeObservedAt ? codex : claude
+            let older = codexObservedAt > claudeObservedAt ? claude : codex
+            return preferredOrFallback(newer, older)
         }
 
         if claude.usage == nil, codex.usage != nil {
@@ -662,6 +668,16 @@ struct ExpandedPanelView: View {
         }
 
         return claude
+    }
+
+    /// Picks `preferred`, unless it has no quota data for the currently selected period while
+    /// `fallback` does — in which case showing `fallback` beats leaving the bar empty when a
+    /// usable quota exists for the other active provider.
+    private static func preferredOrFallback(
+        _ preferred: SharedUsageBarState,
+        _ fallback: SharedUsageBarState
+    ) -> SharedUsageBarState {
+        preferred.usage == nil && fallback.usage != nil ? fallback : preferred
     }
 
     private var activitySection: some View {
