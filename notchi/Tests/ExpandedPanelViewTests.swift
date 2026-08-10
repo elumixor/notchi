@@ -164,6 +164,60 @@ final class ExpandedPanelViewTests: XCTestCase {
         )
     }
 
+    func testWeeklyPeriodAddsPrefixEvenForSingleProviderSessions() {
+        let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
+        let codex = makeUsageState(provider: .codex, usage: 11, observedAt: Date(timeIntervalSince1970: 100))
+
+        XCTAssertEqual(
+            ExpandedPanelView.sharedUsageResetLabelPrefix(
+                state: codex,
+                activeSessions: [codexSession],
+                period: .weekly
+            ),
+            "Weekly"
+        )
+    }
+
+    func testWeeklyPeriodCombinesWithProviderPrefixForMixedSessions() {
+        let claudeSession = SessionData(sessionId: "claude-session", provider: .claude, cwd: "/tmp/project")
+        let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
+        let codex = makeUsageState(provider: .codex, usage: 11, observedAt: Date(timeIntervalSince1970: 100))
+
+        XCTAssertEqual(
+            ExpandedPanelView.sharedUsageResetLabelPrefix(
+                state: codex,
+                activeSessions: [codexSession, claudeSession],
+                period: .weekly
+            ),
+            "Codex Weekly"
+        )
+    }
+
+    func testMainUsageSelectsSessionQuotaForSessionPeriod() {
+        let session = QuotaPeriod(utilization: 10, resetDate: Date(timeIntervalSince1970: 1_000))
+        let weekly = QuotaPeriod(utilization: 20, resetDate: Date(timeIntervalSince1970: 2_000))
+
+        let usage = ExpandedPanelView.mainUsage(for: .session, sessionUsage: session, weeklyUsage: weekly)
+
+        XCTAssertEqual(usage?.usagePercentage, 10)
+    }
+
+    func testMainUsageSelectsWeeklyQuotaForWeeklyPeriod() {
+        let session = QuotaPeriod(utilization: 10, resetDate: Date(timeIntervalSince1970: 1_000))
+        let weekly = QuotaPeriod(utilization: 20, resetDate: Date(timeIntervalSince1970: 2_000))
+
+        let usage = ExpandedPanelView.mainUsage(for: .weekly, sessionUsage: session, weeklyUsage: weekly)
+
+        XCTAssertEqual(usage?.usagePercentage, 20)
+    }
+
+    func testMainUsageReturnsNilWhenSelectedPeriodHasNoData() {
+        let weekly = QuotaPeriod(utilization: 20, resetDate: Date(timeIntervalSince1970: 2_000))
+
+        XCTAssertNil(ExpandedPanelView.mainUsage(for: .session, sessionUsage: nil, weeklyUsage: weekly))
+        XCTAssertNil(ExpandedPanelView.mainUsage(for: .weekly, sessionUsage: weekly, weeklyUsage: nil))
+    }
+
     func testUsageDetailOpensOnContextSessionProviderRegardlessOfLastUsed() {
         let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
 

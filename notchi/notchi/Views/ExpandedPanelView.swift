@@ -175,6 +175,7 @@ struct ExpandedPanelView: View {
     @Binding var isActivityCollapsed: Bool
     @Binding var hoveredSessionId: String?
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
+    @AppStorage(AppSettings.mainUsageBarPeriodKey) private var mainUsageBarPeriodRaw = MainUsageBarPeriod.session.rawValue
     @Environment(\.panelScale) private var panelScale
 
     static let compactHeaderClearance: CGFloat = 0
@@ -277,10 +278,15 @@ struct ExpandedPanelView: View {
         sessionStore.activeSessionCount >= 2 && !showingSessionActivity
     }
 
+    private var mainUsageBarPeriod: MainUsageBarPeriod {
+        MainUsageBarPeriod(rawValue: mainUsageBarPeriodRaw) ?? .session
+    }
+
     private var sharedUsageResetLabelPrefix: String? {
         Self.sharedUsageResetLabelPrefix(
             state: sharedUsageBarState,
-            activeSessions: sessionStore.sortedSessions
+            activeSessions: sessionStore.sortedSessions,
+            period: mainUsageBarPeriod
         )
     }
 
@@ -299,10 +305,11 @@ struct ExpandedPanelView: View {
 
         let includesClaude = Self.includesClaudeUsage(activeSessions: activeSessions)
         let includesCodex = Self.includesCodexUsage(activeSessions: activeSessions)
+        let period = mainUsageBarPeriod
 
         let claude = includesClaude ? SharedUsageBarState(
             provider: .claude,
-            usage: usageService.currentUsage,
+            usage: Self.mainUsage(for: period, sessionUsage: usageService.currentUsage, weeklyUsage: usageService.currentWeeklyUsage),
             isUsingExtraUsage: usageService.isUsingExtraUsage,
             isLoading: usageService.isLoading,
             error: usageService.error,
@@ -314,7 +321,11 @@ struct ExpandedPanelView: View {
 
         let codex = includesCodex ? SharedUsageBarState(
             provider: .codex,
-            usage: codexUsageService.displayUsage,
+            usage: Self.mainUsage(
+                for: period,
+                sessionUsage: codexUsageService.displayUsage,
+                weeklyUsage: codexUsageService.currentWeeklyUsage
+            ),
             isUsingExtraUsage: false,
             isLoading: false,
             error: nil,
@@ -574,12 +585,34 @@ struct ExpandedPanelView: View {
 
     static func sharedUsageResetLabelPrefix(
         state: SharedUsageBarState?,
-        activeSessions: [SessionData]
+        activeSessions: [SessionData],
+        period: MainUsageBarPeriod = .session
     ) -> String? {
-        guard let state, hasMixedClaudeAndCodexSessions(activeSessions) else {
-            return nil
+        guard let state else { return nil }
+
+        var parts: [String] = []
+        if hasMixedClaudeAndCodexSessions(activeSessions) {
+            parts.append(state.provider.displayName)
         }
-        return state.provider.displayName
+        if period != .session {
+            parts.append(period.displayName)
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// Picks which quota to surface in the compact main-page usage bar for the given period.
+    /// Callers pass each provider's existing "session" value as-is (e.g. Codex's `displayUsage`,
+    /// which already falls back to weekly on its own), so `.session` behavior is unchanged from
+    /// before this setting existed.
+    static func mainUsage(
+        for period: MainUsageBarPeriod,
+        sessionUsage: QuotaPeriod?,
+        weeklyUsage: QuotaPeriod?
+    ) -> QuotaPeriod? {
+        switch period {
+        case .session: sessionUsage
+        case .weekly: weeklyUsage
+        }
     }
 
     static func sharedUsageBarIsEnabled(

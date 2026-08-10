@@ -135,6 +135,20 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
     }
 }
 
+enum MainUsageBarPeriod: String, CaseIterable, Identifiable {
+    case session
+    case weekly
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .session: String(localized: "Session")
+        case .weekly: String(localized: "Weekly")
+        }
+    }
+}
+
 enum ExpandedPanelMode: String, CaseIterable {
     case full
     case compact
@@ -179,6 +193,7 @@ struct AppSettings {
     static let notchLeftContentKey = "notchLeftContent"
     static let notchRightContentKey = "notchRightContent"
     static let expandedPanelScaleKey = "expandedPanelScale"
+    static let mainUsageBarPeriodKey = "mainUsageBarPeriod"
 
     private static let notificationSoundKey = "notificationSound"
     private static let notificationSoundSelectionKey = "notificationSoundSelection"
@@ -255,6 +270,13 @@ struct AppSettings {
             let resolved: NotchSlotContent = other == newValue ? previous : .ring
             UserDefaults.standard.set(resolved.rawValue, forKey: otherKey)
         }
+    }
+
+    static var mainUsageBarPeriod: MainUsageBarPeriod {
+        get {
+            MainUsageBarPeriod(rawValue: UserDefaults.standard.string(forKey: mainUsageBarPeriodKey) ?? "") ?? .session
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: mainUsageBarPeriodKey) }
     }
 
     static func expandedPanelScale(in defaults: UserDefaults) -> ExpandedPanelScale {
