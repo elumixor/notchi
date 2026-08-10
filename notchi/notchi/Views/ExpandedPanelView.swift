@@ -231,9 +231,11 @@ struct ExpandedPanelView: View {
     }
 
     private var usageDetailDefaultProvider: AgentProvider {
-        Self.usageDetailDefaultProvider(
+        let displayedState = sharedUsageBarState
+        return Self.usageDetailDefaultProvider(
             requestedProvider: usageDetailProvider,
             contextSession: usageContextSession,
+            displayedSharedUsageProvider: displayedState?.isProviderSpecific == true ? displayedState?.provider : nil,
             lastUsedProvider: AppSettings.lastUsedAgentProvider
         )
     }
@@ -314,7 +316,11 @@ struct ExpandedPanelView: View {
             isLoading: usageService.isLoading,
             error: usageService.error,
             statusMessage: usageService.statusMessage,
-            isStale: usageService.isUsageStale,
+            isStale: Self.mainUsageIsStale(
+                for: period,
+                isUsageStale: usageService.isUsageStale,
+                isUsingHeadersFallback: usageService.isUsingHeadersFallback
+            ),
             recoveryAction: usageService.recoveryAction,
             lastObservedAt: usageService.lastObservedAt
         ) : nil
@@ -622,6 +628,22 @@ struct ExpandedPanelView: View {
         period == .session && isUsingExtraUsage
     }
 
+    /// Claude's headers-fallback mode only refreshes `currentUsage` (session); `currentWeeklyUsage`
+    /// stays at whatever it was from the last successful OAuth response, and a successful headers
+    /// refresh clears `isUsageStale`. So a held-over weekly quota can read as fresh even though it
+    /// isn't. `UsageDetailView` already treats Weekly/Model rows as stale during headers fallback —
+    /// mirror that here for the main bar's Weekly period.
+    static func mainUsageIsStale(
+        for period: MainUsageBarPeriod,
+        isUsageStale: Bool,
+        isUsingHeadersFallback: Bool
+    ) -> Bool {
+        switch period {
+        case .session: isUsageStale
+        case .weekly: isUsageStale || isUsingHeadersFallback
+        }
+    }
+
     static func sharedUsageBarIsEnabled(
         provider: AgentProvider,
         appUsageEnabled: Bool = AppSettings.isUsageEnabled
@@ -629,12 +651,18 @@ struct ExpandedPanelView: View {
         provider == .codex || appUsageEnabled
     }
 
+    /// - Parameter displayedSharedUsageProvider: the provider actually rendered by the compact
+    ///   shared usage bar right now (post fallback-arbitration), when that's unambiguous. It's
+    ///   consulted after an explicit `requestedProvider` but before the raw `contextSession`,
+    ///   since `contextSession` can diverge from what's on-screen once `sharedUsageBarState`
+    ///   falls back to the other provider for a period the context provider has no data for.
     static func usageDetailDefaultProvider(
         requestedProvider: AgentProvider?,
         contextSession: SessionData?,
+        displayedSharedUsageProvider: AgentProvider? = nil,
         lastUsedProvider: AgentProvider
     ) -> AgentProvider {
-        requestedProvider ?? contextSession?.provider ?? lastUsedProvider
+        requestedProvider ?? displayedSharedUsageProvider ?? contextSession?.provider ?? lastUsedProvider
     }
 
     static func sharedUsageBarState(
@@ -670,14 +698,17 @@ struct ExpandedPanelView: View {
         return claude
     }
 
-    /// Picks `preferred`, unless it has no quota data for the currently selected period while
-    /// `fallback` does — in which case showing `fallback` beats leaving the bar empty when a
-    /// usable quota exists for the other active provider.
+    /// Picks `preferred`, unless it's idle (not loading, no error) with no quota data for the
+    /// currently selected period while `fallback` does have data — in which case showing
+    /// `fallback` beats leaving the bar empty when a usable quota exists for the other active
+    /// provider. Never overrides `preferred` while it's loading or has an error to show: that
+    /// state is itself meaningful (e.g. a retry action) and shouldn't be silently swapped away.
     private static func preferredOrFallback(
         _ preferred: SharedUsageBarState,
         _ fallback: SharedUsageBarState
     ) -> SharedUsageBarState {
-        preferred.usage == nil && fallback.usage != nil ? fallback : preferred
+        let preferredIsIdleWithNoData = preferred.usage == nil && !preferred.isLoading && preferred.error == nil
+        return preferredIsIdleWithNoData && fallback.usage != nil ? fallback : preferred
     }
 
     private var activitySection: some View {

@@ -151,6 +151,46 @@ final class ExpandedPanelViewTests: XCTestCase {
         XCTAssertEqual(state?.usage?.usagePercentage, 42)
     }
 
+    func testFallbackDoesNotOverrideAPreferredProviderThatIsStillLoading() {
+        let claudeSession = SessionData(sessionId: "claude-session", provider: .claude, cwd: "/tmp/project")
+        let claudeLoading = makeUsageState(provider: .claude, usage: nil, observedAt: Date(timeIntervalSince1970: 100), isLoading: true)
+        let codex = makeUsageState(provider: .codex, usage: 11, observedAt: Date(timeIntervalSince1970: 200))
+
+        let state = ExpandedPanelView.sharedUsageBarState(
+            contextSession: claudeSession,
+            claude: claudeLoading,
+            codex: codex
+        )
+
+        XCTAssertEqual(state?.provider, .claude)
+        XCTAssertTrue(state?.isLoading ?? false)
+    }
+
+    func testFallbackDoesNotOverrideAPreferredProviderShowingAnError() {
+        let claudeSession = SessionData(sessionId: "claude-session", provider: .claude, cwd: "/tmp/project")
+        let claudeErrored = makeUsageState(
+            provider: .claude, usage: nil, observedAt: Date(timeIntervalSince1970: 100), error: "Connection failed"
+        )
+        let codex = makeUsageState(provider: .codex, usage: 11, observedAt: Date(timeIntervalSince1970: 200))
+
+        let state = ExpandedPanelView.sharedUsageBarState(
+            contextSession: claudeSession,
+            claude: claudeErrored,
+            codex: codex
+        )
+
+        XCTAssertEqual(state?.provider, .claude)
+        XCTAssertEqual(state?.error, "Connection failed")
+    }
+
+    func testMainUsageIsStaleAppliesHeadersFallbackOnlyToWeeklyPeriod() {
+        XCTAssertFalse(ExpandedPanelView.mainUsageIsStale(for: .session, isUsageStale: false, isUsingHeadersFallback: true))
+        XCTAssertTrue(ExpandedPanelView.mainUsageIsStale(for: .weekly, isUsageStale: false, isUsingHeadersFallback: true))
+        XCTAssertTrue(ExpandedPanelView.mainUsageIsStale(for: .session, isUsageStale: true, isUsingHeadersFallback: false))
+        XCTAssertTrue(ExpandedPanelView.mainUsageIsStale(for: .weekly, isUsageStale: true, isUsingHeadersFallback: false))
+        XCTAssertFalse(ExpandedPanelView.mainUsageIsStale(for: .weekly, isUsageStale: false, isUsingHeadersFallback: false))
+    }
+
     func testExtraUsageIndicatorOnlyAppliesToTheSessionPeriod() {
         XCTAssertTrue(ExpandedPanelView.mainUsageIsUsingExtraUsage(for: .session, isUsingExtraUsage: true))
         XCTAssertFalse(ExpandedPanelView.mainUsageIsUsingExtraUsage(for: .weekly, isUsingExtraUsage: true))
@@ -285,6 +325,35 @@ final class ExpandedPanelViewTests: XCTestCase {
         XCTAssertEqual(provider, .codex)
     }
 
+    func testUsageDetailPrefersTheDisplayedFallbackProviderOverContextSession() {
+        // Mirrors the shared-bar fallback: context session is Codex, but the bar is actually
+        // showing Claude because Codex had no data for the selected period. Tapping it should
+        // open the detail view on Claude, not silently reopen on Codex.
+        let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
+
+        let provider = ExpandedPanelView.usageDetailDefaultProvider(
+            requestedProvider: nil,
+            contextSession: codexSession,
+            displayedSharedUsageProvider: .claude,
+            lastUsedProvider: .codex
+        )
+
+        XCTAssertEqual(provider, .claude)
+    }
+
+    func testUsageDetailStillPrefersAnExplicitRequestOverTheDisplayedFallbackProvider() {
+        let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
+
+        let provider = ExpandedPanelView.usageDetailDefaultProvider(
+            requestedProvider: .codex,
+            contextSession: codexSession,
+            displayedSharedUsageProvider: .claude,
+            lastUsedProvider: .codex
+        )
+
+        XCTAssertEqual(provider, .codex)
+    }
+
     func testUsageDetailOpensOnRequestedProviderOverContextSession() {
         let codexSession = SessionData(sessionId: "codex-session", provider: .codex, cwd: "/tmp/project")
 
@@ -316,14 +385,16 @@ final class ExpandedPanelViewTests: XCTestCase {
     private func makeUsageState(
         provider: AgentProvider,
         usage: Double?,
-        observedAt: Date
+        observedAt: Date,
+        isLoading: Bool = false,
+        error: String? = nil
     ) -> SharedUsageBarState {
         SharedUsageBarState(
             provider: provider,
             usage: usage.map { QuotaPeriod(utilization: $0, resetDate: Date(timeIntervalSince1970: 1_000)) },
             isUsingExtraUsage: false,
-            isLoading: false,
-            error: nil,
+            isLoading: isLoading,
+            error: error,
             statusMessage: nil,
             isStale: false,
             recoveryAction: .none,
