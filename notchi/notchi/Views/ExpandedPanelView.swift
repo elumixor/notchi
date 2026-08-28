@@ -113,6 +113,7 @@ nonisolated struct SharedUsageBarState {
     let lastObservedAt: Date?
     let labelOverride: String?
     let isProviderSpecific: Bool
+    let period: MainUsageBarPeriod
 
     init(
         provider: AgentProvider,
@@ -125,7 +126,8 @@ nonisolated struct SharedUsageBarState {
         recoveryAction: ClaudeUsageRecoveryAction,
         lastObservedAt: Date?,
         labelOverride: String? = nil,
-        isProviderSpecific: Bool = true
+        isProviderSpecific: Bool = true,
+        period: MainUsageBarPeriod = .session
     ) {
         self.provider = provider
         self.usage = usage
@@ -138,6 +140,7 @@ nonisolated struct SharedUsageBarState {
         self.lastObservedAt = lastObservedAt
         self.labelOverride = labelOverride
         self.isProviderSpecific = isProviderSpecific
+        self.period = period
     }
 
     var label: String {
@@ -175,6 +178,7 @@ struct ExpandedPanelView: View {
     @Binding var isActivityCollapsed: Bool
     @Binding var hoveredSessionId: String?
     @AppStorage(AppSettings.hideGrassIslandKey) private var hideGrassIsland = false
+    @AppStorage(AppSettings.mainUsageBarPeriodKey) private var mainUsageBarPeriodRaw = MainUsageBarPeriod.session.rawValue
     @Environment(\.panelScale) private var panelScale
 
     static let compactHeaderClearance: CGFloat = 0
@@ -277,10 +281,15 @@ struct ExpandedPanelView: View {
         sessionStore.activeSessionCount >= 2 && !showingSessionActivity
     }
 
+    private var mainUsageBarPeriod: MainUsageBarPeriod {
+        AppSettings.mainUsageBarPeriod(fromRaw: mainUsageBarPeriodRaw)
+    }
+
     private var sharedUsageResetLabelPrefix: String? {
         Self.sharedUsageResetLabelPrefix(
             state: sharedUsageBarState,
-            activeSessions: sessionStore.sortedSessions
+            activeSessions: sessionStore.sortedSessions,
+            requestedPeriod: mainUsageBarPeriod
         )
     }
 
@@ -299,29 +308,50 @@ struct ExpandedPanelView: View {
 
         let includesClaude = Self.includesClaudeUsage(activeSessions: activeSessions)
         let includesCodex = Self.includesCodexUsage(activeSessions: activeSessions)
+        let period = mainUsageBarPeriod
 
+        let claudePeriod = Self.effectiveMainUsagePeriod(
+            for: period,
+            sessionUsage: usageService.currentUsage,
+            weeklyUsage: usageService.currentWeeklyUsage
+        )
         let claude = includesClaude ? SharedUsageBarState(
             provider: .claude,
-            usage: usageService.currentUsage,
-            isUsingExtraUsage: usageService.isUsingExtraUsage,
+            usage: Self.mainUsage(for: claudePeriod, sessionUsage: usageService.currentUsage, weeklyUsage: usageService.currentWeeklyUsage),
+            isUsingExtraUsage: Self.mainUsageIsUsingExtraUsage(for: claudePeriod, isUsingExtraUsage: usageService.isUsingExtraUsage),
             isLoading: usageService.isLoading,
             error: usageService.error,
             statusMessage: usageService.statusMessage,
-            isStale: usageService.isUsageStale,
+            isStale: Self.mainUsageIsStale(
+                for: claudePeriod,
+                isUsageStale: usageService.isUsageStale,
+                isWeeklyUsageHeldOver: usageService.isWeeklyUsageHeldOver
+            ),
             recoveryAction: usageService.recoveryAction,
-            lastObservedAt: usageService.lastObservedAt
+            lastObservedAt: usageService.lastObservedAt,
+            period: claudePeriod
         ) : nil
 
+        let codexPeriod = Self.effectiveMainUsagePeriod(
+            for: period,
+            sessionUsage: codexUsageService.currentUsage,
+            weeklyUsage: codexUsageService.currentWeeklyUsage
+        )
         let codex = includesCodex ? SharedUsageBarState(
             provider: .codex,
-            usage: codexUsageService.displayUsage,
+            usage: Self.mainUsage(
+                for: codexPeriod,
+                sessionUsage: codexUsageService.currentUsage,
+                weeklyUsage: codexUsageService.currentWeeklyUsage
+            ),
             isUsingExtraUsage: false,
             isLoading: false,
             error: nil,
             statusMessage: codexUsageService.statusMessage,
             isStale: codexUsageService.isUsageStale,
             recoveryAction: .none,
-            lastObservedAt: codexUsageService.lastObservedAt
+            lastObservedAt: codexUsageService.lastObservedAt,
+            period: codexPeriod
         ) : nil
 
         return Self.sharedUsageBarState(
@@ -574,12 +604,60 @@ struct ExpandedPanelView: View {
 
     static func sharedUsageResetLabelPrefix(
         state: SharedUsageBarState?,
-        activeSessions: [SessionData]
+        activeSessions: [SessionData],
+        requestedPeriod: MainUsageBarPeriod
     ) -> String? {
-        guard let state, hasMixedClaudeAndCodexSessions(activeSessions) else {
-            return nil
+        guard let state else { return nil }
+
+        var parts: [String] = []
+        if hasMixedClaudeAndCodexSessions(activeSessions) {
+            parts.append(state.provider.displayName)
         }
-        return state.provider.displayName
+        if state.period == .weekly || state.period != requestedPeriod {
+            let periodName = state.period.displayName
+            parts.append(parts.isEmpty ? periodName : periodName.lowercased(with: .autoupdatingCurrent))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    // The selected period falls back to the provider's other quota when its own is missing, so the
+    // bar shows live data instead of staying empty. The label follows via SharedUsageBarState.period.
+    static func effectiveMainUsagePeriod(
+        for period: MainUsageBarPeriod,
+        sessionUsage: QuotaPeriod?,
+        weeklyUsage: QuotaPeriod?
+    ) -> MainUsageBarPeriod {
+        switch period {
+        case .session: sessionUsage == nil && weeklyUsage != nil ? .weekly : .session
+        case .weekly: weeklyUsage == nil && sessionUsage != nil ? .session : .weekly
+        }
+    }
+
+    static func mainUsage(
+        for period: MainUsageBarPeriod,
+        sessionUsage: QuotaPeriod?,
+        weeklyUsage: QuotaPeriod?
+    ) -> QuotaPeriod? {
+        switch period {
+        case .session: sessionUsage
+        case .weekly: weeklyUsage
+        }
+    }
+
+    // Extra usage means session quota overflow, so the badge is misleading next to a weekly percentage.
+    static func mainUsageIsUsingExtraUsage(for period: MainUsageBarPeriod, isUsingExtraUsage: Bool) -> Bool {
+        period == .session && isUsingExtraUsage
+    }
+
+    static func mainUsageIsStale(
+        for period: MainUsageBarPeriod,
+        isUsageStale: Bool,
+        isWeeklyUsageHeldOver: Bool
+    ) -> Bool {
+        switch period {
+        case .session: isUsageStale
+        case .weekly: isWeeklyUsageHeldOver
+        }
     }
 
     static func sharedUsageBarIsEnabled(
@@ -600,35 +678,42 @@ struct ExpandedPanelView: View {
     static func sharedUsageBarState(
         contextSession: SessionData?,
         claude: SharedUsageBarState?,
-        codex: SharedUsageBarState?
+        codex: SharedUsageBarState?,
+        claudeUsageEnabled: Bool = AppSettings.isUsageEnabled
     ) -> SharedUsageBarState? {
         guard let claude, let codex else {
             return claude ?? codex
         }
 
         if let contextSession {
-            switch contextSession.provider {
-            case .claude:
-                return claude
-            case .codex:
-                return codex
-            }
+            return contextSession.provider == .claude ? claude : codex
         }
 
         if let claudeObservedAt = claude.lastObservedAt,
            let codexObservedAt = codex.lastObservedAt,
            claudeObservedAt != codexObservedAt {
-            return codexObservedAt > claudeObservedAt ? codex : claude
+            let newer = codexObservedAt > claudeObservedAt ? codex : claude
+            let older = codexObservedAt > claudeObservedAt ? claude : codex
+            return preferredOrFallback(newer, older, claudeUsageEnabled: claudeUsageEnabled)
         }
 
-        if claude.usage == nil, codex.usage != nil {
-            return codex
-        }
-        if codex.usage == nil, claude.usage != nil {
-            return claude
-        }
+        return preferredOrFallback(claude, codex, claudeUsageEnabled: claudeUsageEnabled)
+    }
 
-        return claude
+    // Only a bar with nothing at all to show swaps to the provider that has data. Loading, error,
+    // status, and recovery states stay visible, and a disabled Claude keeps its connect placeholder.
+    private static func preferredOrFallback(
+        _ preferred: SharedUsageBarState,
+        _ fallback: SharedUsageBarState,
+        claudeUsageEnabled: Bool
+    ) -> SharedUsageBarState {
+        let preferredIsEnabled = sharedUsageBarIsEnabled(provider: preferred.provider, appUsageEnabled: claudeUsageEnabled)
+        let preferredIsSilentlyEmpty = preferred.usage == nil
+            && !preferred.isLoading
+            && preferred.error == nil
+            && preferred.statusMessage == nil
+            && preferred.recoveryAction == .none
+        return preferredIsEnabled && preferredIsSilentlyEmpty && fallback.usage != nil ? fallback : preferred
     }
 
     private var activitySection: some View {

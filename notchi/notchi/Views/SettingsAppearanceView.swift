@@ -10,6 +10,8 @@ struct SettingsAppearanceView: View {
 
             PanelSizeSettingsView()
 
+            MainUsageBarSettingsView()
+
             Divider().background(Color.white.opacity(0.08))
 
             Button(action: { hideSpriteWhenIdle.toggle() }) {
@@ -95,6 +97,65 @@ private struct PanelSizeSettingsView: View {
                         .panelFont(size: 9)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
+            }
+            .padding(.horizontal, SettingsLayout.pickerOptionHorizontalPadding)
+            .padding(.vertical, SettingsLayout.pickerOptionVerticalPadding)
+            .background(isSelected ? TerminalColors.hoverBackground : Color.clear)
+            .cornerRadius(4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct MainUsageBarSettingsView: View {
+    @AppStorage(AppSettings.mainUsageBarPeriodKey) private var periodRaw = MainUsageBarPeriod.session.rawValue
+    @State private var isExpanded = false
+
+    private var period: MainUsageBarPeriod { AppSettings.mainUsageBarPeriod(fromRaw: periodRaw) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: { isExpanded.toggle() }) {
+                SettingsRowView(icon: "chart.bar.xaxis", title: "Main Usage Bar") {
+                    HStack(spacing: 4) {
+                        Text(period.displayName)
+                            .panelFont(size: 11)
+                            .foregroundColor(TerminalColors.secondaryText)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .panelFont(size: 9)
+                            .foregroundColor(TerminalColors.dimmedText)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                SettingsPicker(rowCount: MainUsageBarPeriod.allCases.count) {
+                    ForEach(MainUsageBarPeriod.allCases) { option in
+                        optionRow(option)
+                    }
+                }
+            }
+        }
+        .animation(.spring(response: 0.3), value: isExpanded)
+    }
+
+    private func optionRow(_ option: MainUsageBarPeriod) -> some View {
+        let isSelected = period == option
+        return Button(action: {
+            AppSettings.mainUsageBarPeriod = option
+            isExpanded = false
+        }) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(isSelected ? TerminalColors.green : Color.clear)
+                    .frame(width: 6, height: 6)
+                Text(option.displayName)
+                    .panelFont(size: 11, weight: .medium)
+                    .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.secondaryText)
+                    .lineLimit(1)
+                Spacer()
             }
             .padding(.horizontal, SettingsLayout.pickerOptionHorizontalPadding)
             .padding(.vertical, SettingsLayout.pickerOptionVerticalPadding)

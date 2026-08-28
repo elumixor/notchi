@@ -176,8 +176,8 @@ final class CodexUsageService {
         let now = dependencies.now()
 
         if let snapshot, hasUnexpiredQuota(snapshot.usage, snapshot.weeklyUsage, now: now) {
-            currentUsage = snapshot.usage
-            currentWeeklyUsage = snapshot.weeklyUsage
+            currentUsage = unexpiredOnly(snapshot.usage, now: now)
+            currentWeeklyUsage = unexpiredOnly(snapshot.weeklyUsage, now: now)
             lastObservedAt = snapshot.observedAt
             isUsageStale = now.timeIntervalSince(snapshot.observedAt) > Self.staleObservationInterval
             statusMessage = nil
@@ -191,6 +191,11 @@ final class CodexUsageService {
 
         isUsageStale = true
         statusMessage = nil
+    }
+
+    private func unexpiredOnly(_ usage: QuotaPeriod?, now: Date) -> QuotaPeriod? {
+        guard let resetDate = usage?.resetDate, resetDate <= now else { return usage }
+        return nil
     }
 
     private func hasUnexpiredQuota(_ usage: QuotaPeriod?, _ weeklyUsage: QuotaPeriod?, now: Date) -> Bool {
