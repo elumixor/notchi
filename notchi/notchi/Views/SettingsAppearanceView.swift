@@ -112,7 +112,7 @@ private struct MainUsageBarSettingsView: View {
     @AppStorage(AppSettings.mainUsageBarPeriodKey) private var periodRaw = MainUsageBarPeriod.session.rawValue
     @State private var isExpanded = false
 
-    private var period: MainUsageBarPeriod { MainUsageBarPeriod(rawValue: periodRaw) ?? .session }
+    private var period: MainUsageBarPeriod { AppSettings.mainUsageBarPeriod(fromRaw: periodRaw) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

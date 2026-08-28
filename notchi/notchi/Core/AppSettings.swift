@@ -273,10 +273,12 @@ struct AppSettings {
     }
 
     static var mainUsageBarPeriod: MainUsageBarPeriod {
-        get {
-            MainUsageBarPeriod(rawValue: UserDefaults.standard.string(forKey: mainUsageBarPeriodKey) ?? "") ?? .session
-        }
+        get { mainUsageBarPeriod(fromRaw: UserDefaults.standard.string(forKey: mainUsageBarPeriodKey)) }
         set { UserDefaults.standard.set(newValue.rawValue, forKey: mainUsageBarPeriodKey) }
+    }
+
+    static func mainUsageBarPeriod(fromRaw raw: String?) -> MainUsageBarPeriod {
+        MainUsageBarPeriod(rawValue: raw ?? "") ?? .session
     }
 
     static func expandedPanelScale(in defaults: UserDefaults) -> ExpandedPanelScale {
