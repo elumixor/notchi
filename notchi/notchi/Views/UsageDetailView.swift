@@ -79,7 +79,7 @@ struct UsageDetailView: View {
         switch resolvedProvider {
         case .claude:
             let stale = claudeUsage.isUsageStale
-            let heldOver = stale || claudeUsage.isUsingHeadersFallback
+            let heldOver = claudeUsage.isWeeklyUsageHeldOver
             return [
                 UsageMetrics.periodDisplay(title: String(localized: "Session"), usage: claudeUsage.currentUsage, isStale: stale),
                 UsageMetrics.periodDisplay(title: String(localized: "Weekly"), usage: claudeUsage.currentWeeklyUsage, isStale: heldOver),
