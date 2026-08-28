@@ -90,6 +90,43 @@ final class CodexUsageServiceTests: XCTestCase {
         XCTAssertTrue(service.hasUsageData)
     }
 
+    func testRefreshDropsExpiredSessionQuotaWhenWeeklyQuotaStillValid() async {
+        let service = CodexUsageService(dependencies: CodexUsageServiceDependencies(
+            resolveUsage: { _ in
+                CodexUsageSnapshot(
+                    usage: QuotaPeriod(utilization: 61, resetDate: Date(timeIntervalSince1970: 1_000)),
+                    weeklyUsage: QuotaPeriod(utilization: 22, resetDate: Date(timeIntervalSince1970: 5_000)),
+                    observedAt: Date(timeIntervalSince1970: 900)
+                )
+            },
+            now: { Date(timeIntervalSince1970: 1_010) }
+        ))
+
+        await service.refresh(transcriptPaths: ["/tmp/rollout.jsonl"])
+
+        XCTAssertNil(service.currentUsage)
+        XCTAssertEqual(service.currentWeeklyUsage?.usagePercentage, 22)
+        XCTAssertEqual(service.displayUsage?.usagePercentage, 22)
+    }
+
+    func testRefreshDropsExpiredWeeklyQuotaWhenSessionQuotaStillValid() async {
+        let service = CodexUsageService(dependencies: CodexUsageServiceDependencies(
+            resolveUsage: { _ in
+                CodexUsageSnapshot(
+                    usage: QuotaPeriod(utilization: 61, resetDate: Date(timeIntervalSince1970: 1_500)),
+                    weeklyUsage: QuotaPeriod(utilization: 22, resetDate: Date(timeIntervalSince1970: 1_000)),
+                    observedAt: Date(timeIntervalSince1970: 900)
+                )
+            },
+            now: { Date(timeIntervalSince1970: 1_010) }
+        ))
+
+        await service.refresh(transcriptPaths: ["/tmp/rollout.jsonl"])
+
+        XCTAssertEqual(service.currentUsage?.usagePercentage, 61)
+        XCTAssertNil(service.currentWeeklyUsage)
+    }
+
     func testDisplayUsageFallsBackToWeeklyWhenSessionQuotaMissing() async {
         let service = CodexUsageService(dependencies: CodexUsageServiceDependencies(
             resolveUsage: { _ in
