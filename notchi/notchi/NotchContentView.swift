@@ -349,7 +349,18 @@ struct NotchContentView: View {
     }
 
     private var collapsedHeaderSpriteScale: CGFloat {
-        !isExpanded && panelManager.isCollapsedHovered ? 1.08 : 1
+        let hoverScale: CGFloat = !isExpanded && panelManager.isCollapsedHovered ? 1.08 : 1
+        return hoverScale * Self.headerSpriteFitScale(
+            notchHeight: notchSize.height,
+            screenHasNotch: panelManager.screenHasNotch
+        )
+    }
+
+    static func headerSpriteFitScale(notchHeight: CGFloat, screenHasNotch: Bool) -> CGFloat {
+        guard !screenHasNotch else { return 1 }
+        let referenceNotchHeight: CGFloat = 38
+        let minimumScale: CGFloat = 0.8
+        return min(1, max(minimumScale, notchHeight / referenceNotchHeight))
     }
 
     private var collapsedHeaderSpriteOffsetX: CGFloat {
