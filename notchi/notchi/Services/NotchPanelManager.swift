@@ -56,6 +56,7 @@ final class NotchPanelManager {
     private(set) var isCollapsedHovered = false
     private(set) var collapsedMode: CollapsedMode = .normalCollapsed
     private(set) var notchSize: CGSize = .zero
+    private(set) var screenHasNotch = false
     private(set) var notchRect: CGRect = .zero
     private(set) var compactNotchRect: CGRect = .zero
     private(set) var panelRect: CGRect = .zero
@@ -128,6 +129,7 @@ final class NotchPanelManager {
         let screenFrame = screen.frame
 
         notchSize = newNotchSize
+        screenHasNotch = screen.hasNotch
         systemNotchPath = screen.notchPath
 
         let notchCenterX = screenFrame.origin.x + screenFrame.width / 2
