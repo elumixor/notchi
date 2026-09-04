@@ -521,13 +521,19 @@ struct NotchContentView: View {
         sideWidth / 4 + cornerRadiusInsets.closed.top
     }
 
+    private var collapsedRingDiameter: CGFloat { 20 }
+
+    /// Gap between the notch edge and the readout, matching where the ring's
+    /// inner edge sits so the text clears the notch curve.
+    private var readoutInnerInset: CGFloat {
+        (sideWidth - collapsedRingDiameter) / 2
+    }
+
     /// Width the readout slot needs beyond its normal share to fit the text.
     private var readoutExtraWidth: CGFloat {
         guard hasCollapsedReadout, readoutWidth > 0 else { return 0 }
-        return max(0, readoutWidth + ringOffsetMagnitude - sideWidth)
+        return max(0, readoutWidth + readoutInnerInset + ringOffsetMagnitude - sideWidth)
     }
-
-    private var collapsedRingDiameter: CGFloat { 20 }
 
     private var collapsedExtraWidth: (left: CGFloat, right: CGFloat) {
         switch readoutSide {
@@ -981,6 +987,7 @@ struct NotchContentView: View {
     private func usageSlot(side: NotchSide) -> some View {
         if hasCollapsedReadout, !isLaunchWaveActive {
             collapsedReadout
+                .padding(side == .left ? .trailing : .leading, readoutInnerInset)
                 .opacity(collapsedHeaderSpriteVisuals.opacity)
                 .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
                 .frame(width: sideWidth + readoutExtraWidth, alignment: side == .left ? .trailing : .leading)
