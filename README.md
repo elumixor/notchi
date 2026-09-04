@@ -32,8 +32,15 @@ upstream releases do not replace this build.
 ### Install
 
 ```sh
+./scripts/create-signing-identity.sh   # once
 ./scripts/install.sh
 ```
+
+The first script creates a self-signed certificate in the login keychain and
+every build is signed with it. Keychain access control lists follow the signing
+identity, so without a stable one macOS asks for the keychain password after
+every rebuild. The next launch asks once more — answer **Always Allow** and it
+holds from then on.
 
 This builds Release and replaces `/Applications/Notchi.app`. The fork keeps the
 upstream bundle identifier, so it reuses the same preferences and hooks and only
