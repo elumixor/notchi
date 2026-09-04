@@ -5,11 +5,12 @@ readout added to the notch companion.
 
 ## What this fork adds
 
-- **Notch readout.** A "Spend & Reset Time" option for either notch side, next
-  to the existing Usage Ring option, showing spend and time until the session
-  window resets ("4.8h", "59m"). Each figure is switched on or off under
-  Appearance and hidden when it has no data. The ring shows its percentage in
-  the middle. "Compare Against Limit" on the Budget screen turns "$12 / $100"
+- **Notch readout.** "Spend & Reset Time" and "Usage Ring + Spend & Reset"
+  options for either notch side, next to the existing Usage Ring option. Spend
+  is whole dollars; the reset time ("4.8h", "59m") sits inside a ring that
+  empties over the five-hour window. Each figure is switched on or off under
+  Appearance and hidden when it has no data. The usage ring shows its
+  percentage in the middle. "Compare Against Limit" on the Budget screen turns "$12 / $100"
   into plain "$12" for a plan with no dollar cap.
 - **Budget tracking.** A monthly dollar limit that no API exposes — a work
   account with a fixed allowance, for example — tracked from the cost computed

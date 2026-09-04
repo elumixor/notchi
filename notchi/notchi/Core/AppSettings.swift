@@ -99,6 +99,7 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
     case latest
     case ring
     case usage
+    case ringWithUsage
     case claude
     case codex
     case nothing
@@ -110,6 +111,7 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
         case .latest: String(localized: "Latest Session Mascot")
         case .ring: String(localized: "Usage Ring")
         case .usage: String(localized: "Spend & Reset Time")
+        case .ringWithUsage: String(localized: "Usage Ring + Spend & Reset")
         case .claude: String(localized: "Claude Mascot")
         case .codex: String(localized: "Codex Mascot")
         case .nothing: String(localized: "Nothing")
@@ -120,16 +122,19 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
         switch self {
         case .claude: .claude
         case .codex: .codex
-        case .nothing, .ring, .usage, .latest: nil
+        case .nothing, .ring, .usage, .ringWithUsage, .latest: nil
         }
     }
 
     var isSprite: Bool {
         switch self {
         case .latest, .claude, .codex: true
-        case .nothing, .ring, .usage: false
+        case .nothing, .ring, .usage, .ringWithUsage: false
         }
     }
+
+    var showsRing: Bool { self == .ring || self == .ringWithUsage }
+    var showsUsageReadout: Bool { self == .usage || self == .ringWithUsage }
 
     static func conflict(_ a: NotchSlotContent, _ b: NotchSlotContent) -> Bool {
         guard a != .nothing, b != .nothing else { return false }

@@ -109,11 +109,11 @@ final class NotchPanelManager {
         activeSessionCountProvider: @escaping @MainActor () -> Int = { SessionStore.shared.activeSessionCount },
         collapsedRingVisibleProvider: @escaping @MainActor () -> Bool = {
             guard AppSettings.isUsageEnabled else { return false }
-            if AppSettings.notchLeftContent == .usage || AppSettings.notchRightContent == .usage,
+            if AppSettings.notchLeftContent.showsUsageReadout || AppSettings.notchRightContent.showsUsageReadout,
                AppSettings.notchShowSpend, BudgetTracker.shared.status != nil {
                 return true
             }
-            guard AppSettings.notchLeftContent == .ring || AppSettings.notchRightContent == .ring else {
+            guard AppSettings.notchLeftContent.showsRing || AppSettings.notchRightContent.showsRing else {
                 return false
             }
             return NotchContentView.collapsedRingPercentage(

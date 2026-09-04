@@ -109,9 +109,21 @@ nonisolated struct QuotaPeriod: Codable, Equatable, Sendable {
         guard interval > 0 else { return nil }
         if interval >= 3600 {
             let hours = interval / 3600
-            return hours >= 10 ? "\(Int(hours.rounded()))h" : String(format: "%.1fh", hours)
+            let tenths = (hours * 10).rounded() / 10
+            if hours >= 10 || tenths == tenths.rounded() {
+                return "\(Int(tenths.rounded()))h"
+            }
+            return String(format: "%.1fh", tenths)
         }
         return "\(max(1, Int((interval / 60).rounded())))m"
+    }
+
+    /// Share of a window of the given length that is still ahead, or nil once it has passed.
+    func fractionRemaining(windowLength: TimeInterval) -> Double? {
+        guard let resetDate, windowLength > 0 else { return nil }
+        let interval = resetDate.timeIntervalSince(Date())
+        guard interval > 0 else { return nil }
+        return min(1, interval / windowLength)
     }
 
     var formattedResetTime: String? {
