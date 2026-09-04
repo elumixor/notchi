@@ -157,6 +157,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(toggle(
             title: "Track Budget", isOn: BudgetSettings.isEnabled,
             selector: #selector(toggleBudgetTracking)))
+        let reportedToggle = toggle(
+            title: "Use Claude's Extra Usage Figures",
+            isOn: BudgetSettings.prefersReportedSpend,
+            selector: #selector(toggleReportedSpend))
+        reportedToggle.isEnabled = UsageMetrics
+            .extraUsageDisplay(ClaudeUsageService.shared.currentExtraUsage) != nil
+        menu.addItem(reportedToggle)
         menu.addItem(toggle(
             title: "Show Budget in Menu Bar", isOn: Self.showsBudget,
             selector: #selector(toggleShowBudget)))
@@ -188,8 +195,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         } else {
             lines.append("Over budget by \(Self.usd(-status.remainingUSD))")
         }
-        if BudgetSettings.anchorDay.isEmpty {
-            lines.append("Not calibrated — estimated from local session logs")
+        switch status.source {
+        case .reported:
+            lines.append("Reported by Claude — no calibration needed")
+        case .calibrated:
+            break
+        case .estimated:
+            lines.append("Estimated from local session logs — not calibrated")
         }
         if status.isTruncated {
             lines.append("Partial — logs do not reach the period start")
@@ -208,6 +220,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         if let model = sessionNotifier.modelQuota {
             let name = sessionNotifier.modelQuotaName ?? String(localized: "Model")
             lines.append("\(name) week \(model.usagePercentage)% — \(resetPhrase(for: model))")
+        }
+        if let extra = UsageMetrics.extraUsageDisplay(ClaudeUsageService.shared.currentExtraUsage) {
+            lines.append("Extra usage \(Self.usd(extra.usedCredits)) of \(Self.usdRounded(extra.monthlyLimit)) (\(extra.percentUsed)%)")
         }
         if let lastReset = sessionNotifier.lastResetAt {
             lines.append("Last rollover at \(Self.clockFormatter.string(from: lastReset))")
@@ -296,6 +311,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func toggleBudgetTracking() {
         BudgetSettings.isEnabled.toggle()
+        tracker.recompute()
+        updateTitle()
+    }
+
+    @objc private func toggleReportedSpend() {
+        BudgetSettings.prefersReportedSpend.toggle()
         tracker.recompute()
         updateTitle()
     }

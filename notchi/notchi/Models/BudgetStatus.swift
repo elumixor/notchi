@@ -11,7 +11,18 @@ nonisolated enum BudgetPace: Equatable, Sendable {
     case over
 }
 
+/// Where the spend figure came from, which decides how much to trust it.
+nonisolated enum BudgetSource: Equatable, Sendable {
+    /// The provider reported both spend and limit; nothing is inferred.
+    case reported
+    /// Anchored to a figure the user entered, plus locally computed cost since.
+    case calibrated
+    /// Entirely computed from local session logs.
+    case estimated
+}
+
 nonisolated struct BudgetStatus: Equatable, Sendable {
+    let source: BudgetSource
     let spentUSD: Double
     let limitUSD: Double
     let periodStart: Date
@@ -61,6 +72,7 @@ nonisolated struct BudgetStatus: Equatable, Sendable {
 
     static func make(
         buckets: DayModelBuckets,
+        reportedSpend: ReportedSpend? = nil,
         limitUSD: Double,
         resetDay: Int,
         anchorAmountUSD: Double,
@@ -80,7 +92,11 @@ nonisolated struct BudgetStatus: Equatable, Sendable {
         let costs = dailyCosts(from: buckets)
 
         let spent: Double
-        if !anchorDay.isEmpty, anchorDay >= periodStartKey {
+        let source: BudgetSource
+        if let reportedSpend {
+            spent = reportedSpend.spentUSD
+            source = .reported
+        } else if !anchorDay.isEmpty, anchorDay >= periodStartKey {
             // Calibration inside the current period: trust the reported figure and
             // add only what accumulated after it.
             let sameDayDelta = max((costs[anchorDay] ?? 0) - anchorDayCostUSD, 0)
@@ -89,15 +105,17 @@ nonisolated struct BudgetStatus: Equatable, Sendable {
                 .values
                 .reduce(0, +)
             spent = anchorAmountUSD + sameDayDelta + laterDays
+            source = .calibrated
         } else {
             spent = costs
                 .filter { $0.key >= periodStartKey }
                 .values
                 .reduce(0, +)
+            source = .estimated
         }
 
         let truncated: Bool
-        if !anchorDay.isEmpty, anchorDay >= periodStartKey {
+        if source != .estimated {
             truncated = false
         } else if let oldest = oldestScannedDay {
             truncated = oldest > periodStartKey
@@ -106,13 +124,20 @@ nonisolated struct BudgetStatus: Equatable, Sendable {
         }
 
         return BudgetStatus(
+            source: source,
             spentUSD: spent,
-            limitUSD: limitUSD,
+            limitUSD: reportedSpend?.limitUSD ?? limitUSD,
             periodStart: periodStart,
             periodEnd: periodEnd,
             daysInPeriod: daysInPeriod,
             dayIndex: dayIndex,
             isTruncated: truncated)
+    }
+
+    /// A spend and limit pair the provider itself reports, which needs no calibration.
+    nonisolated struct ReportedSpend: Equatable, Sendable {
+        let spentUSD: Double
+        let limitUSD: Double
     }
 
     static func dailyCosts(from buckets: DayModelBuckets) -> [String: Double] {

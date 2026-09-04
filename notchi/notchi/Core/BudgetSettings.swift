@@ -12,6 +12,7 @@ enum BudgetSettings {
     static let anchorDayKey = "budgetAnchorDay"
     static let anchorDayCostUSDKey = "budgetAnchorDayCostUSD"
     static let anchorSetAtKey = "budgetAnchorSetAt"
+    static let prefersReportedSpendKey = "budgetPrefersReportedSpend"
 
     static let defaultLimitUSD: Double = 100
     static let defaultResetDay = 1
@@ -24,12 +25,22 @@ enum BudgetSettings {
             enabledKey: true,
             limitUSDKey: defaultLimitUSD,
             resetDayKey: defaultResetDay,
+            prefersReportedSpendKey: false,
         ])
     }
 
     static var isEnabled: Bool {
         get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+    }
+
+    /// Whether to trust the provider's own extra-usage figures over the locally
+    /// computed cost. Off by default: the figure is meaningful only for an
+    /// account whose whole allowance is the extra-usage pool, and only the user
+    /// knows whether theirs is.
+    static var prefersReportedSpend: Bool {
+        get { UserDefaults.standard.object(forKey: prefersReportedSpendKey) as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: prefersReportedSpendKey) }
     }
 
     static var limitUSD: Double {

@@ -9,9 +9,15 @@ readout added on top of the notch companion.
   account with a fixed allowance, for example — tracked from the cost computed
   out of the local Claude Code session logs. Green under an even burn, orange
   ahead of it, red once the limit is gone.
-- **Manual calibration.** The real balance cannot be read, so `Set Current
-  Spend…` anchors it to whatever the provider reports; usage from that moment on
-  is added to the anchor. Calibration is exact to the minute, not the day.
+- **Provider figures when they exist.** Claude publishes a dollar spend and
+  limit for the extra-usage pool, and `Use Claude's Extra Usage Figures` reads it
+  straight through, no calibration involved. It is off by default because the
+  figure only describes spend beyond what the subscription covers, so it reads
+  zero for an account burning inside its plan.
+- **Manual calibration otherwise.** For an allowance no API exposes, `Set
+  Current Spend…` anchors to whatever the provider reports; usage from that
+  moment on is added to the anchor. The anchor is exact to the minute, not the
+  day. The menu says which of the three the number came from.
 - **Budget detail in the menu.** Spend against limit, where an even burn would
   have been by now, average per day, projected period total, and what is left
   per remaining day.

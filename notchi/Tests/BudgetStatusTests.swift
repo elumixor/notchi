@@ -124,6 +124,38 @@ final class BudgetStatusTests: XCTestCase {
         XCTAssertEqual(result.projectedTotalUSD, 93, accuracy: 1e-9)
     }
 
+    func testReportedSpendOverridesLocalCostAndLimit() {
+        let result = BudgetStatus.make(
+            buckets: buckets(["2026-03-01": 12]),
+            reportedSpend: .init(spentUSD: 40, limitUSD: 250),
+            limitUSD: 100,
+            resetDay: 1,
+            anchorAmountUSD: 90,
+            anchorDay: "2026-03-01",
+            anchorDayCostUSD: 0,
+            oldestScannedDay: "2026-03-01",
+            now: date(2026, 3, 1),
+            calendar: calendar)
+        XCTAssertEqual(result.source, .reported)
+        XCTAssertEqual(result.spentUSD, 40, accuracy: 1e-9)
+        XCTAssertEqual(result.limitUSD, 250, accuracy: 1e-9)
+        XCTAssertFalse(result.isTruncated)
+    }
+
+    func testSourceIsCalibratedWhenAnchorIsInPeriod() {
+        let result = status(
+            costsByDay: ["2026-03-02": 4],
+            anchorAmountUSD: 10,
+            anchorDay: "2026-03-01",
+            now: date(2026, 3, 2))
+        XCTAssertEqual(result.source, .calibrated)
+    }
+
+    func testSourceIsEstimatedWithoutAnchorOrReport() {
+        let result = status(costsByDay: ["2026-03-01": 4], now: date(2026, 3, 1))
+        XCTAssertEqual(result.source, .estimated)
+    }
+
     func testTruncatedWhenScanWindowStartsAfterPeriodStart() {
         let result = status(
             costsByDay: ["2026-03-10": 5],

@@ -17,13 +17,31 @@ final class BudgetTracker {
     private(set) var status: BudgetStatus?
 
     private let costStore: CostHistoryStore
+    private let usageService: ClaudeUsageService
     private let calendar: Calendar
     private var timer: Timer?
     private let recomputeInterval: TimeInterval = 30
 
-    init(costStore: CostHistoryStore? = nil, calendar: Calendar = .current) {
+    init(costStore: CostHistoryStore? = nil,
+         usageService: ClaudeUsageService = .shared,
+         calendar: Calendar = .current) {
         self.costStore = costStore ?? Self.makeCostStore()
+        self.usageService = usageService
         self.calendar = calendar
+    }
+
+    /// The provider's own spend against its own limit, when it publishes one.
+    ///
+    /// Claude reports this only for the extra-usage pool — spend beyond what the
+    /// subscription covers. An account whose whole allowance is that pool needs no
+    /// calibration; one that spends inside its subscription reports zero, which
+    /// says nothing about the real burn, so local cost is used instead.
+    var reportedSpend: BudgetStatus.ReportedSpend? {
+        guard BudgetSettings.prefersReportedSpend,
+              let reported = UsageMetrics.extraUsageDisplay(usageService.currentExtraUsage)
+        else { return nil }
+        return BudgetStatus.ReportedSpend(
+            spentUSD: reported.usedCredits, limitUSD: reported.monthlyLimit)
     }
 
     private static func makeCostStore() -> CostHistoryStore {
@@ -90,6 +108,7 @@ final class BudgetTracker {
         let now = Date()
         status = BudgetStatus.make(
             buckets: costStore.buckets,
+            reportedSpend: reportedSpend,
             limitUSD: BudgetSettings.limitUSD,
             resetDay: BudgetSettings.resetDay,
             anchorAmountUSD: BudgetSettings.anchorAmountUSD,
