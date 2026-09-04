@@ -40,9 +40,6 @@ struct SettingsAppearanceView: View {
 
             NotchLayoutSettingsView()
 
-            Divider().background(Color.white.opacity(0.08))
-
-            NotchReadoutSettingsView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -179,58 +176,38 @@ private struct MainUsageBarSettingsView: View {
     }
 }
 
-/// Which figures the "Spend & Reset Time" notch slot shows.
-private struct NotchReadoutSettingsView: View {
-    @AppStorage(AppSettings.notchShowSpendKey) private var showSpend = true
-    @AppStorage(AppSettings.notchShowResetTimeKey) private var showResetTime = true
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
-            row(icon: "dollarsign.circle", title: "Show Spend", isOn: $showSpend)
-            row(icon: "clock.arrow.circlepath", title: "Show Reset Time", isOn: $showResetTime)
-        }
-    }
-
-    private func row(icon: String, title: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
-        Button(action: { isOn.wrappedValue.toggle() }) {
-            SettingsRowView(icon: icon, title: title) {
-                ToggleSwitch(isOn: isOn.wrappedValue)
-            }
-        }
-        .buttonStyle(.plain)
-    }
-}
-
+/// Which items each side of the collapsed notch shows. Any number per side,
+/// drawn in the order listed here.
 private struct NotchLayoutSettingsView: View {
-    private enum Side { case left, right }
-
-    @AppStorage(AppSettings.notchLeftContentKey) private var leftRaw = NotchSlotContent.ring.rawValue
-    @AppStorage(AppSettings.notchRightContentKey) private var rightRaw = NotchSlotContent.latest.rawValue
+    @AppStorage(AppSettings.notchLeftItemsKey) private var leftRaw = NotchSlotContent.encode(AppSettings.notchLeftItems)
+    @AppStorage(AppSettings.notchRightItemsKey) private var rightRaw = NotchSlotContent.encode(AppSettings.notchRightItems)
     @State private var isLeftExpanded = false
     @State private var isRightExpanded = false
 
-    private var left: NotchSlotContent { NotchSlotContent(rawValue: leftRaw) ?? .ring }
-    private var right: NotchSlotContent { NotchSlotContent(rawValue: rightRaw) ?? .latest }
+    private var left: [NotchSlotContent] { NotchSlotContent.parse(leftRaw) }
+    private var right: [NotchSlotContent] { NotchSlotContent.parse(rightRaw) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
-            sideRow(.left, icon: "rectangle.lefthalf.filled", title: "Notch Left", isExpanded: $isLeftExpanded)
-            sideRow(.right, icon: "rectangle.righthalf.filled", title: "Notch Right", isExpanded: $isRightExpanded)
+            sideRow(onLeft: true, icon: "rectangle.lefthalf.filled", title: "Notch Left", isExpanded: $isLeftExpanded)
+            sideRow(onLeft: false, icon: "rectangle.righthalf.filled", title: "Notch Right", isExpanded: $isRightExpanded)
         }
         .animation(.spring(response: 0.3), value: isLeftExpanded)
         .animation(.spring(response: 0.3), value: isRightExpanded)
     }
 
     @ViewBuilder
-    private func sideRow(_ side: Side, icon: String, title: LocalizedStringKey, isExpanded: Binding<Bool>) -> some View {
-        let selection = side == .left ? left : right
+    private func sideRow(onLeft: Bool, icon: String, title: LocalizedStringKey, isExpanded: Binding<Bool>) -> some View {
+        let selection = onLeft ? left : right
         VStack(alignment: .leading, spacing: 0) {
             Button(action: { isExpanded.wrappedValue.toggle() }) {
                 SettingsRowView(icon: icon, title: title) {
                     HStack(spacing: 4) {
-                        Text(selection.displayName)
+                        Text(summary(for: selection))
                             .panelFont(size: 11)
                             .foregroundColor(TerminalColors.secondaryText)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                         Image(systemName: isExpanded.wrappedValue ? "chevron.up" : "chevron.down")
                             .panelFont(size: 9)
                             .foregroundColor(TerminalColors.dimmedText)
@@ -240,36 +217,40 @@ private struct NotchLayoutSettingsView: View {
             .buttonStyle(.plain)
 
             if isExpanded.wrappedValue {
-                picker(side)
+                picker(onLeft: onLeft)
             }
         }
     }
 
-    private func picker(_ side: Side) -> some View {
+    private func summary(for items: [NotchSlotContent]) -> String {
+        items.isEmpty ? String(localized: "Nothing") : items.map(\.displayName).joined(separator: ", ")
+    }
+
+    private func picker(onLeft: Bool) -> some View {
         SettingsPicker(rowCount: NotchSlotContent.allCases.count) {
             ForEach(NotchSlotContent.allCases) { option in
-                optionRow(side, option: option)
+                optionRow(onLeft: onLeft, option: option)
             }
         }
     }
 
-    private func optionRow(_ side: Side, option: NotchSlotContent) -> some View {
-        let selection = side == .left ? left : right
-        let other = side == .left ? right : left
-        let isSelected = selection == option
-        let hint = pickHint(option: option, isSelected: isSelected, other: other)
-        return Button(action: { select(option, for: side) }) {
+    private func optionRow(onLeft: Bool, option: NotchSlotContent) -> some View {
+        let selection = onLeft ? left : right
+        let other = onLeft ? right : left
+        let isSelected = selection.contains(option)
+        let displaces = !isSelected && other.contains { NotchSlotContent.conflict(option, $0) }
+        return Button(action: { AppSettings.toggleNotchItem(option, onLeft: onLeft) }) {
             HStack(spacing: 8) {
-                Circle()
-                    .fill(isSelected ? TerminalColors.green : Color.clear)
-                    .frame(width: 6, height: 6)
+                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
+                    .panelFont(size: 11)
+                    .foregroundColor(isSelected ? TerminalColors.green : TerminalColors.dimmedText)
                 Text(option.displayName)
                     .panelFont(size: 11, weight: .medium)
                     .foregroundColor(isSelected ? TerminalColors.primaryText : TerminalColors.secondaryText)
                     .lineLimit(1)
                 Spacer()
-                if let hint {
-                    Text(hint)
+                if displaces {
+                    Text("Moves here")
                         .panelFont(size: 9)
                         .foregroundColor(TerminalColors.dimmedText)
                 }
@@ -282,23 +263,4 @@ private struct NotchLayoutSettingsView: View {
         }
         .buttonStyle(.plain)
     }
-
-    private func pickHint(option: NotchSlotContent, isSelected: Bool, other: NotchSlotContent) -> String? {
-        guard !isSelected else { return nil }
-        if option == other, other != .nothing { return String(localized: "Swap") }
-        if NotchSlotContent.conflict(option, other) { return String(localized: "Replace") }
-        return nil
-    }
-
-    private func select(_ option: NotchSlotContent, for side: Side) {
-        switch side {
-        case .left:
-            AppSettings.notchLeftContent = option
-            isLeftExpanded = false
-        case .right:
-            AppSettings.notchRightContent = option
-            isRightExpanded = false
-        }
-    }
-
 }

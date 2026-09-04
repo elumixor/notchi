@@ -46,7 +46,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
         AppSettings.registerDefaults()
         BudgetSettings.registerDefaults()
         SessionResetNotifier.registerDefaults()
-        AppSettings.registerNotchReadoutDefaults()
         guard !isRunningTests else { return }
 
         NSApplication.shared.setActivationPolicy(.accessory)

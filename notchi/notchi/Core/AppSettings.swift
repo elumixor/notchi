@@ -95,26 +95,26 @@ enum EmotionAnalysisModel: String, CaseIterable, Identifiable {
     }
 }
 
+/// One thing the collapsed notch can show beside the notch. Each side holds any
+/// number of these, drawn in this order.
 enum NotchSlotContent: String, CaseIterable, Identifiable {
+    case usageRing
+    case resetRing
+    case spend
     case latest
-    case ring
-    case usage
-    case ringWithUsage
     case claude
     case codex
-    case nothing
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
+        case .usageRing: String(localized: "Usage Ring")
+        case .resetRing: String(localized: "Reset Ring")
+        case .spend: String(localized: "Spend")
         case .latest: String(localized: "Latest Session Mascot")
-        case .ring: String(localized: "Usage Ring")
-        case .usage: String(localized: "Spend & Reset Time")
-        case .ringWithUsage: String(localized: "Usage Ring + Spend & Reset")
         case .claude: String(localized: "Claude Mascot")
         case .codex: String(localized: "Codex Mascot")
-        case .nothing: String(localized: "Nothing")
         }
     }
 
@@ -122,23 +122,31 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
         switch self {
         case .claude: .claude
         case .codex: .codex
-        case .nothing, .ring, .usage, .ringWithUsage, .latest: nil
+        case .usageRing, .resetRing, .spend, .latest: nil
         }
     }
 
     var isSprite: Bool {
         switch self {
         case .latest, .claude, .codex: true
-        case .nothing, .ring, .usage, .ringWithUsage: false
+        case .usageRing, .resetRing, .spend: false
         }
     }
 
-    var showsRing: Bool { self == .ring || self == .ringWithUsage }
-    var showsUsageReadout: Bool { self == .usage || self == .ringWithUsage }
-
+    /// Two items that cannot sit on opposite sides at once.
     static func conflict(_ a: NotchSlotContent, _ b: NotchSlotContent) -> Bool {
-        guard a != .nothing, b != .nothing else { return false }
-        return a == b || (a.isSprite && b.isSprite && (a == .latest || b == .latest))
+        a == b || (a.isSprite && b.isSprite && (a == .latest || b == .latest))
+    }
+
+    static let separator = ","
+
+    static func parse(_ raw: String) -> [NotchSlotContent] {
+        let items = raw.split(separator: separator).compactMap { NotchSlotContent(rawValue: String($0)) }
+        return allCases.filter { items.contains($0) }
+    }
+
+    static func encode(_ items: [NotchSlotContent]) -> String {
+        allCases.filter { items.contains($0) }.map(\.rawValue).joined(separator: separator)
     }
 }
 
@@ -198,10 +206,11 @@ struct AppSettings {
     static let showGitBranchAndPullRequestKey = "showGitBranchAndPullRequest"
     static let expandOnHoverKey = "expandOnHover"
     static let panelToggleShortcutKey = "panelToggleShortcut"
-    static let notchLeftContentKey = "notchLeftContent"
-    static let notchRightContentKey = "notchRightContent"
-    static let notchShowSpendKey = "notchShowSpend"
-    static let notchShowResetTimeKey = "notchShowResetTime"
+    static let notchLeftItemsKey = "notchLeftItems"
+    static let notchRightItemsKey = "notchRightItems"
+    /// Single-item keys from before a side could hold several items; read once to migrate.
+    private static let legacyNotchLeftContentKey = "notchLeftContent"
+    private static let legacyNotchRightContentKey = "notchRightContent"
     static let expandedPanelScaleKey = "expandedPanelScale"
     static let mainUsageBarPeriodKey = "mainUsageBarPeriod"
 
@@ -242,43 +251,55 @@ struct AppSettings {
         set { UserDefaults.standard.set(newValue, forKey: isUsageEnabledKey) }
     }
 
-    static var notchLeftContent: NotchSlotContent {
-        get { NotchSlotContent(rawValue: UserDefaults.standard.string(forKey: notchLeftContentKey) ?? "") ?? .ring }
-        set {
-            writeNotchSlot(
-                newValue,
-                previous: notchLeftContent,
-                other: notchRightContent,
-                key: notchLeftContentKey,
-                otherKey: notchRightContentKey
-            )
+    static var notchLeftItems: [NotchSlotContent] {
+        get { notchItems(forKey: notchLeftItemsKey, legacyKey: legacyNotchLeftContentKey, fallback: [.usageRing]) }
+        set { writeNotchItems(newValue, key: notchLeftItemsKey, otherKey: notchRightItemsKey, otherLegacyKey: legacyNotchRightContentKey) }
+    }
+
+    static var notchRightItems: [NotchSlotContent] {
+        get { notchItems(forKey: notchRightItemsKey, legacyKey: legacyNotchRightContentKey, fallback: [.latest]) }
+        set { writeNotchItems(newValue, key: notchRightItemsKey, otherKey: notchLeftItemsKey, otherLegacyKey: legacyNotchLeftContentKey) }
+    }
+
+    static func toggleNotchItem(_ item: NotchSlotContent, onLeft: Bool) {
+        var items = onLeft ? notchLeftItems : notchRightItems
+        if let index = items.firstIndex(of: item) {
+            items.remove(at: index)
+        } else {
+            items.append(item)
+        }
+        if onLeft { notchLeftItems = items } else { notchRightItems = items }
+    }
+
+    private static func notchItems(forKey key: String, legacyKey: String, fallback: [NotchSlotContent]) -> [NotchSlotContent] {
+        if let raw = UserDefaults.standard.string(forKey: key) {
+            return NotchSlotContent.parse(raw)
+        }
+        if let legacy = UserDefaults.standard.string(forKey: legacyKey) {
+            return migrateLegacyNotchContent(legacy)
+        }
+        return fallback
+    }
+
+    private static func migrateLegacyNotchContent(_ raw: String) -> [NotchSlotContent] {
+        switch raw {
+        case "ring": [.usageRing]
+        case "usage": [.spend, .resetRing]
+        case "ringWithUsage": [.usageRing, .spend, .resetRing]
+        case "nothing": []
+        default: NotchSlotContent(rawValue: raw).map { [$0] } ?? []
         }
     }
 
-    static var notchRightContent: NotchSlotContent {
-        get { NotchSlotContent(rawValue: UserDefaults.standard.string(forKey: notchRightContentKey) ?? "") ?? .latest }
-        set {
-            writeNotchSlot(
-                newValue,
-                previous: notchRightContent,
-                other: notchLeftContent,
-                key: notchRightContentKey,
-                otherKey: notchLeftContentKey
-            )
-        }
-    }
-
-    private static func writeNotchSlot(
-        _ newValue: NotchSlotContent,
-        previous: NotchSlotContent,
-        other: NotchSlotContent,
-        key: String,
-        otherKey: String
+    /// Stores one side and drops anything on the other side that conflicts with it.
+    private static func writeNotchItems(
+        _ items: [NotchSlotContent], key: String, otherKey: String, otherLegacyKey: String
     ) {
-        UserDefaults.standard.set(newValue.rawValue, forKey: key)
-        if NotchSlotContent.conflict(newValue, other) {
-            let resolved: NotchSlotContent = other == newValue ? previous : .ring
-            UserDefaults.standard.set(resolved.rawValue, forKey: otherKey)
+        UserDefaults.standard.set(NotchSlotContent.encode(items), forKey: key)
+        let other = notchItems(forKey: otherKey, legacyKey: otherLegacyKey, fallback: [])
+        let kept = other.filter { candidate in !items.contains { NotchSlotContent.conflict($0, candidate) } }
+        if kept != other || UserDefaults.standard.string(forKey: otherKey) == nil {
+            UserDefaults.standard.set(NotchSlotContent.encode(kept), forKey: otherKey)
         }
     }
 
@@ -306,25 +327,6 @@ struct AppSettings {
             showGrassIslandKey: true,
             showGitBranchAndPullRequestKey: true,
         ])
-    }
-
-    static func registerNotchReadoutDefaults(in defaults: UserDefaults = .standard) {
-        defaults.register(defaults: [
-            notchShowSpendKey: true,
-            notchShowResetTimeKey: true,
-        ])
-    }
-
-    /// Whether the budget spend is shown beside the usage ring in the collapsed notch.
-    static var notchShowSpend: Bool {
-        get { UserDefaults.standard.object(forKey: notchShowSpendKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: notchShowSpendKey) }
-    }
-
-    /// Whether the time until the session window resets is shown in the collapsed notch.
-    static var notchShowResetTime: Bool {
-        get { UserDefaults.standard.object(forKey: notchShowResetTimeKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: notchShowResetTimeKey) }
     }
 
     static func showSpriteWhenIdle(in defaults: UserDefaults) -> Bool {

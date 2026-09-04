@@ -170,12 +170,11 @@ struct NotchContentView: View {
     var haptics: HapticService = .shared
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @ObservedObject private var updateManager = UpdateManager.shared
-    @AppStorage(AppSettings.notchLeftContentKey) private var leftContentRaw = NotchSlotContent.ring.rawValue
-    @AppStorage(AppSettings.notchRightContentKey) private var rightContentRaw = NotchSlotContent.latest.rawValue
-    @AppStorage(AppSettings.notchShowSpendKey) private var showSpend = true
-    @AppStorage(AppSettings.notchShowResetTimeKey) private var showResetTime = true
+    @AppStorage(AppSettings.notchLeftItemsKey) private var leftItemsRaw = NotchSlotContent.encode(AppSettings.notchLeftItems)
+    @AppStorage(AppSettings.notchRightItemsKey) private var rightItemsRaw = NotchSlotContent.encode(AppSettings.notchRightItems)
     var budgetTracker: BudgetTracker = .shared
-    @State private var readoutWidth: CGFloat = 0
+    @State private var leftContentWidth: CGFloat = 0
+    @State private var rightContentWidth: CGFloat = 0
     @State private var showingPanelSettings = false
     @State private var settingsPath: [SettingsScreen] = []
     @State private var showingUsageDetail = false
@@ -217,16 +216,21 @@ struct NotchContentView: View {
     private var isExpanded: Bool { panelManager.isExpanded }
     private var collapsedMode: NotchPanelManager.CollapsedMode { panelManager.collapsedMode }
     private var isCompactIdle: Bool { !isExpanded && collapsedMode == .compactIdle }
-    private var leftContent: NotchSlotContent {
-        NotchSlotContent(rawValue: leftContentRaw) ?? .ring
+    private var leftItems: [NotchSlotContent] { NotchSlotContent.parse(leftItemsRaw) }
+    private var rightItems: [NotchSlotContent] { NotchSlotContent.parse(rightItemsRaw) }
+
+    private func items(on side: NotchSide) -> [NotchSlotContent] {
+        side == .left ? leftItems : rightItems
     }
 
-    private var rightContent: NotchSlotContent {
-        NotchSlotContent(rawValue: rightContentRaw) ?? .latest
+    /// The provider a "latest session" mascot must skip, because the other side
+    /// already shows that provider's own mascot.
+    private func excludedProvider(for side: NotchSide) -> AgentProvider? {
+        items(on: side == .left ? .right : .left).compactMap(\.spriteProvider).first
     }
 
     private func spriteContent(for content: NotchSlotContent, side: NotchSide) -> HeaderSpriteContent? {
-        let excluded = (side == .left ? rightContent : leftContent).spriteProvider
+        let excluded = excludedProvider(for: side)
         if let session = sessionForSprite(content, excluding: excluded) {
             return HeaderSpriteContent(state: session.state, mirrorSeed: session.id)
         }
@@ -249,7 +253,7 @@ struct NotchContentView: View {
         case .claude: sessionStore.latestSession(for: .claude)
         case .codex: sessionStore.latestSession(for: .codex)
         case .latest: sessionStore.latestSession(excluding: excluded)
-        case .nothing, .ring, .usage, .ringWithUsage: nil
+        case .usageRing, .resetRing, .spend: nil
         }
     }
 
@@ -262,7 +266,7 @@ struct NotchContentView: View {
         case .claude: spriteFamily == AgentProvider.claude.spriteFamily
         case .codex: spriteFamily == AgentProvider.codex.spriteFamily
         case .latest: spriteFamily != excluded?.spriteFamily
-        case .nothing, .ring, .usage, .ringWithUsage: false
+        case .usageRing, .resetRing, .spend: false
         }
     }
 
@@ -417,8 +421,14 @@ struct NotchContentView: View {
     }
 
     private var collapsedSpriteSession: SessionData? {
-        sessionForSprite(leftContent, excluding: rightContent.spriteProvider)
-            ?? sessionForSprite(rightContent, excluding: leftContent.spriteProvider)
+        for side in [NotchSide.left, .right] {
+            for item in items(on: side) where item.isSprite {
+                if let session = sessionForSprite(item, excluding: excludedProvider(for: side)) {
+                    return session
+                }
+            }
+        }
+        return nil
     }
 
     private var ringProvider: AgentProvider {
@@ -478,14 +488,19 @@ struct NotchContentView: View {
     }
 
     private var isCollapsedRingVisible: Bool {
-        ((leftContent.showsRing || rightContent.showsRing) && usageRingPercentage != nil)
-            || (readoutSide != nil && hasCollapsedReadout)
+        [NotchSide.left, .right].contains { side in
+            items(on: side).contains { !$0.isSprite && isItemVisible($0, side: side) }
+        }
     }
 
-    // MARK: - Collapsed usage readout
+    // MARK: - Collapsed usage items
 
-    private static let readoutSpacing: CGFloat = 5
+    private static let itemSpacing: CGFloat = 5
     private static let readoutFontSize: CGFloat = 11
+    private var collapsedRingDiameter: CGFloat { 20 }
+
+    /// Five-hour session window; the reset ring follows the session quota.
+    private static let sessionWindowLength: TimeInterval = 5 * 3600
 
     private var ringQuota: QuotaPeriod? {
         guard AppSettings.isUsageEnabled else { return nil }
@@ -497,76 +512,49 @@ struct NotchContentView: View {
         )
     }
 
-    private var readoutBudget: BudgetStatus? {
-        showSpend ? budgetTracker.status : nil
-    }
+    private var resetText: String? { ringQuota?.compactResetTime }
 
-    private var readoutResetText: String? {
-        showResetTime ? ringQuota?.compactResetTime : nil
-    }
-
-    private var hasCollapsedReadout: Bool {
-        readoutBudget != nil || readoutResetText != nil
-    }
-
-    private var readoutSide: NotchSide? {
-        if leftContent.showsUsageReadout { return .left }
-        if rightContent.showsUsageReadout { return .right }
-        return nil
-    }
-
-    private var readoutShowsRing: Bool {
-        switch readoutSide {
-        case .left: leftContent == .ringWithUsage && usageRingPercentage != nil
-        case .right: rightContent == .ringWithUsage && usageRingPercentage != nil
-        case nil: false
+    private func isItemVisible(_ item: NotchSlotContent, side: NotchSide) -> Bool {
+        switch item {
+        case .usageRing: usageRingPercentage != nil
+        case .resetRing: resetText != nil
+        case .spend: budgetTracker.status != nil
+        case .latest, .claude, .codex: spriteContent(for: item, side: side) != nil
         }
     }
 
-    /// Outward shift shared by the ring and the readout, without the hover bump
-    /// so the hit rect does not change while the cursor is over it.
+    private func visibleItems(on side: NotchSide) -> [NotchSlotContent] {
+        items(on: side).filter { isItemVisible($0, side: side) }
+    }
+
+    /// A side holding only a mascot keeps the original sprite layout; anything
+    /// else is laid out as a row that can grow past the slot.
+    private func usesRowLayout(on side: NotchSide) -> Bool {
+        let items = items(on: side)
+        return !(items.count == 1 && items[0].isSprite)
+    }
+
+    /// Outward shift shared by the row and the ring, without the hover bump so
+    /// the hit rect does not change while the cursor is over it.
     private var ringOffsetMagnitude: CGFloat {
         sideWidth / 4 + cornerRadiusInsets.closed.top
     }
 
-    private var collapsedRingDiameter: CGFloat { 20 }
-
-    /// Gap between the notch edge and the readout, matching where the ring's
-    /// inner edge sits so the text clears the notch curve.
-    private var readoutInnerInset: CGFloat {
+    /// Gap between the notch edge and the row, so text clears the notch curve.
+    private var rowInnerInset: CGFloat {
         (sideWidth - collapsedRingDiameter) / 2
     }
 
-    /// Width the readout slot needs beyond its normal share to fit the text,
-    /// and the ring too when they share a slot.
-    private var readoutExtraWidth: CGFloat {
-        guard hasCollapsedReadout, readoutWidth > 0 else { return 0 }
-        var contentWidth = readoutWidth + readoutInnerInset
-        if readoutShowsRing {
-            contentWidth += collapsedRingDiameter + Self.readoutSpacing
-        }
-        return max(0, contentWidth + ringOffsetMagnitude - sideWidth)
-    }
-
-    /// Five-hour session window; the readout follows the session quota.
-    private static let sessionWindowLength: TimeInterval = 5 * 3600
-
-    private var collapsedRing: some View {
-        UsageRingView(
-            percentage: usageRingPercentage ?? 0,
-            diameter: collapsedRingDiameter,
-            lineWidth: 2.5,
-            isStale: ringIsStale,
-            label: String(usageRingPercentage ?? 0)
-        )
+    /// Width a side needs beyond its normal share to fit its row.
+    private func extraWidth(on side: NotchSide) -> CGFloat {
+        guard usesRowLayout(on: side) else { return 0 }
+        let width = side == .left ? leftContentWidth : rightContentWidth
+        guard width > 0 else { return 0 }
+        return max(0, width + ringOffsetMagnitude - sideWidth)
     }
 
     private var collapsedExtraWidth: (left: CGFloat, right: CGFloat) {
-        switch readoutSide {
-        case .left: (readoutExtraWidth, 0)
-        case .right: (0, readoutExtraWidth)
-        case nil: (0, 0)
-        }
+        (extraWidth(on: .left), extraWidth(on: .right))
     }
 
     /// Keeps the notch cut-out over the physical notch when one side is wider.
@@ -584,35 +572,39 @@ struct NotchContentView: View {
         }
     }
 
-    private var collapsedReadout: some View {
-        // The countdown is derived from the current time, so it needs its own tick.
-        TimelineView(.periodic(from: .now, by: 30)) { _ in
-            HStack(spacing: Self.readoutSpacing) {
-                if let status = readoutBudget {
-                    if BudgetSettings.showsLimit {
-                        Text("\(BudgetFormatter.usdCompact(status.spentUSD)) / \(BudgetFormatter.usdRounded(status.limitUSD))")
-                            .foregroundColor(paceColor(for: status.pace))
-                    } else {
-                        Text(BudgetFormatter.usdCompact(status.spentUSD))
-                            .foregroundColor(.white.opacity(0.9))
-                    }
-                }
-                if let reset = readoutResetText {
-                    ResetRingView(
-                        fractionRemaining: ringQuota?.fractionRemaining(windowLength: Self.sessionWindowLength) ?? 0,
-                        label: reset,
-                        diameter: collapsedRingDiameter + 2
-                    )
+    private var collapsedRing: some View {
+        UsageRingView(
+            percentage: usageRingPercentage ?? 0,
+            diameter: collapsedRingDiameter,
+            lineWidth: 2.5,
+            isStale: ringIsStale,
+            label: String(usageRingPercentage ?? 0)
+        )
+    }
+
+    private var collapsedResetRing: some View {
+        ResetRingView(
+            fractionRemaining: ringQuota?.fractionRemaining(windowLength: Self.sessionWindowLength) ?? 0,
+            label: resetText ?? "",
+            diameter: collapsedRingDiameter + 2
+        )
+    }
+
+    @ViewBuilder
+    private var collapsedSpend: some View {
+        if let status = budgetTracker.status {
+            Group {
+                if BudgetSettings.showsLimit {
+                    Text("\(BudgetFormatter.usdCompact(status.spentUSD)) / \(BudgetFormatter.usdRounded(status.limitUSD))")
+                        .foregroundColor(paceColor(for: status.pace))
+                } else {
+                    Text(BudgetFormatter.usdCompact(status.spentUSD))
+                        .foregroundColor(.white.opacity(0.9))
                 }
             }
             .font(.system(size: Self.readoutFontSize, weight: .medium).monospacedDigit())
             .lineLimit(1)
             .fixedSize()
-        }
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.width
-        } action: { width in
-            readoutWidth = width
         }
     }
 
@@ -953,30 +945,26 @@ struct NotchContentView: View {
                 .frame(width: compactContentWidth)
         } else {
             HStack(spacing: 0) {
-                slotView(leftContent, side: .left)
+                sideView(side: .left)
 
                 Color.clear
                     .frame(width: notchSize.width - cornerRadiusInsets.closed.top - sideWidth)
 
-                slotView(rightContent, side: .right)
+                sideView(side: .right)
             }
         }
     }
 
     @ViewBuilder
-    private func slotView(_ content: NotchSlotContent, side: NotchSide) -> some View {
-        switch content {
-        case .nothing:
+    private func sideView(side: NotchSide) -> some View {
+        let items = items(on: side)
+        if items.isEmpty {
             Color.clear.frame(width: sideWidth)
-        case .ring:
-            ringSlot(side: side)
-        case .usage:
-            usageSlot(side: side)
-        case .ringWithUsage:
-            combinedSlot(side: side)
-        case .latest, .claude, .codex:
-            spriteSlot(content: spriteContent(for: content, side: side), side: side)
-                .simultaneousGesture(collapsedSpriteGesture(for: content, side: side))
+        } else if !usesRowLayout(on: side) {
+            spriteSlot(content: spriteContent(for: items[0], side: side), side: side)
+                .simultaneousGesture(collapsedSpriteGesture(for: items[0], side: side))
+        } else {
+            rowSlot(side: side)
         }
     }
 
@@ -984,73 +972,11 @@ struct NotchContentView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { _ in
                 guard !isExpanded else { return }
-                let excluded = (side == .left ? rightContent : leftContent).spriteProvider
-                guard let session = sessionForSprite(content, excluding: excluded) else { return }
+                guard let session = sessionForSprite(content, excluding: excludedProvider(for: side)) else { return }
                 sessionStore.selectSession(matchingStableId: session.id)
                 showingSessionActivity = true
                 panelManager.expand()
             }
-    }
-
-    @ViewBuilder
-    private func ringSlot(side: NotchSide) -> some View {
-        if usageRingPercentage != nil, !isLaunchWaveActive {
-            collapsedRing
-            .opacity(collapsedHeaderSpriteVisuals.opacity)
-            .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
-            .frame(width: sideWidth)
-            .contentShape(Rectangle())
-            .simultaneousGesture(usageDetailGesture)
-            .scaleEffect(collapsedHeaderSpriteScale, anchor: .bottom)
-            .offset(x: ringOffsetX(side: side), y: collapsedUsageRingOffsetY)
-        } else {
-            Color.clear.frame(width: sideWidth)
-        }
-    }
-
-    @ViewBuilder
-    private func usageSlot(side: NotchSide) -> some View {
-        if hasCollapsedReadout, !isLaunchWaveActive {
-            collapsedReadout
-                .padding(side == .left ? .trailing : .leading, readoutInnerInset)
-                .opacity(collapsedHeaderSpriteVisuals.opacity)
-                .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
-                .frame(width: sideWidth + readoutExtraWidth, alignment: side == .left ? .trailing : .leading)
-                .contentShape(Rectangle())
-                .simultaneousGesture(usageDetailGesture)
-                .scaleEffect(collapsedHeaderSpriteScale, anchor: .bottom)
-                .offset(x: ringOffsetX(side: side), y: collapsedUsageRingOffsetY)
-        } else {
-            Color.clear.frame(width: sideWidth)
-        }
-    }
-
-    /// Ring on the outside, readout between it and the notch, reading left to right.
-    @ViewBuilder
-    private func combinedSlot(side: NotchSide) -> some View {
-        if hasCollapsedReadout || usageRingPercentage != nil, !isLaunchWaveActive {
-            HStack(spacing: Self.readoutSpacing) {
-                if side == .right, hasCollapsedReadout {
-                    collapsedReadout
-                }
-                if usageRingPercentage != nil {
-                    collapsedRing
-                }
-                if side == .left, hasCollapsedReadout {
-                    collapsedReadout
-                }
-            }
-            .padding(side == .left ? .trailing : .leading, readoutInnerInset)
-            .opacity(collapsedHeaderSpriteVisuals.opacity)
-            .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
-            .frame(width: sideWidth + readoutExtraWidth, alignment: side == .left ? .trailing : .leading)
-            .contentShape(Rectangle())
-            .simultaneousGesture(usageDetailGesture)
-            .scaleEffect(collapsedHeaderSpriteScale, anchor: .bottom)
-            .offset(x: ringOffsetX(side: side), y: collapsedUsageRingOffsetY)
-        } else {
-            Color.clear.frame(width: sideWidth)
-        }
     }
 
     private var usageDetailGesture: some Gesture {
@@ -1062,6 +988,67 @@ struct NotchContentView: View {
                 showingUsageDetail = true
                 panelManager.expand()
             }
+    }
+
+    /// Items in their configured order, reading left to right, kept clear of the notch.
+    @ViewBuilder
+    private func rowSlot(side: NotchSide) -> some View {
+        let visible = visibleItems(on: side)
+        if !visible.isEmpty, !isLaunchWaveActive {
+            // The reset countdown is derived from the current time, so it needs its own tick.
+            TimelineView(.periodic(from: .now, by: 30)) { _ in
+                HStack(spacing: Self.itemSpacing) {
+                    ForEach(visible) { item in
+                        rowItem(item, side: side)
+                    }
+                }
+            }
+            .padding(side == .left ? .trailing : .leading, rowInnerInset)
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.width
+            } action: { width in
+                if side == .left { leftContentWidth = width } else { rightContentWidth = width }
+            }
+            .opacity(collapsedHeaderSpriteVisuals.opacity)
+            .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
+            .frame(width: sideWidth + extraWidth(on: side), alignment: side == .left ? .trailing : .leading)
+            .scaleEffect(collapsedHeaderSpriteScale, anchor: .bottom)
+            .offset(x: ringOffsetX(side: side), y: collapsedUsageRingOffsetY)
+        } else {
+            Color.clear.frame(width: sideWidth)
+        }
+    }
+
+    @ViewBuilder
+    private func rowItem(_ item: NotchSlotContent, side: NotchSide) -> some View {
+        switch item {
+        case .usageRing:
+            collapsedRing
+                .contentShape(Rectangle())
+                .simultaneousGesture(usageDetailGesture)
+        case .resetRing:
+            collapsedResetRing
+                .contentShape(Rectangle())
+                .simultaneousGesture(usageDetailGesture)
+        case .spend:
+            collapsedSpend
+                .contentShape(Rectangle())
+                .simultaneousGesture(usageDetailGesture)
+        case .latest, .claude, .codex:
+            if let content = spriteContent(for: item, side: side) {
+                SessionSpriteView(
+                    state: content.state,
+                    isPrimarySprite: true,
+                    mirrorSeed: content.mirrorSeed,
+                    animationStartDate: content.startedAt,
+                    repeatsAnimation: content.repeatsAnimation
+                )
+                .scaleEffect(content.scale, anchor: .bottom)
+                .frame(width: sideWidth * 0.7)
+                .contentShape(Rectangle())
+                .simultaneousGesture(collapsedSpriteGesture(for: item, side: side))
+            }
+        }
     }
 
     @ViewBuilder

@@ -8,17 +8,22 @@ private enum VisibleScreenHeight {
 }
 
 final class NotchContentViewTests: XCTestCase {
-    func testSameNonNothingContentsConflict() {
-        XCTAssertTrue(NotchSlotContent.conflict(.ring, .ring))
+    func testSameContentsConflict() {
+        XCTAssertTrue(NotchSlotContent.conflict(.usageRing, .usageRing))
         XCTAssertTrue(NotchSlotContent.conflict(.latest, .latest))
         XCTAssertTrue(NotchSlotContent.conflict(.claude, .claude))
         XCTAssertTrue(NotchSlotContent.conflict(.codex, .codex))
     }
 
-    func testNothingNeverConflicts() {
-        XCTAssertFalse(NotchSlotContent.conflict(.nothing, .nothing))
-        XCTAssertFalse(NotchSlotContent.conflict(.nothing, .claude))
-        XCTAssertFalse(NotchSlotContent.conflict(.latest, .nothing))
+    func testReadoutItemsDoNotConflictWithEachOther() {
+        XCTAssertFalse(NotchSlotContent.conflict(.usageRing, .resetRing))
+        XCTAssertFalse(NotchSlotContent.conflict(.spend, .resetRing))
+    }
+
+    func testItemsParseInCanonicalOrder() {
+        XCTAssertEqual(NotchSlotContent.parse("spend,usageRing,bogus"), [.usageRing, .spend])
+        XCTAssertEqual(NotchSlotContent.encode([.latest, .spend]), "spend,latest")
+        XCTAssertEqual(NotchSlotContent.parse(""), [])
     }
 
     func testLatestSessionConflictsWithAnySprite() {
@@ -31,8 +36,8 @@ final class NotchContentViewTests: XCTestCase {
     }
 
     func testUsageRingDoesNotConflictWithASprite() {
-        XCTAssertFalse(NotchSlotContent.conflict(.ring, .claude))
-        XCTAssertFalse(NotchSlotContent.conflict(.ring, .latest))
+        XCTAssertFalse(NotchSlotContent.conflict(.usageRing, .claude))
+        XCTAssertFalse(NotchSlotContent.conflict(.usageRing, .latest))
     }
 
     func testRingProviderFollowsDisplayedSpriteSessionOverSelectedSession() {

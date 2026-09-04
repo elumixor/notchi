@@ -14,10 +14,10 @@ struct ResetRingView: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.18), lineWidth: lineWidth)
+                .stroke(Color.white.opacity(0.7), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: clamped)
-                .stroke(Color.white.opacity(0.7), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(label)
                 .font(.system(size: diameter * 0.36, weight: .semibold).monospacedDigit())
