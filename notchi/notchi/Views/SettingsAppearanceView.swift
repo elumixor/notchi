@@ -39,6 +39,10 @@ struct SettingsAppearanceView: View {
             Divider().background(Color.white.opacity(0.08))
 
             NotchLayoutSettingsView()
+
+            Divider().background(Color.white.opacity(0.08))
+
+            MenuBarSettingsView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -170,6 +174,30 @@ private struct MainUsageBarSettingsView: View {
             .background(isSelected ? TerminalColors.hoverBackground : Color.clear)
             .cornerRadius(4)
             .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+/// Which parts of the menu bar readout are shown, in the order they appear there.
+private struct MenuBarSettingsView: View {
+    @AppStorage(MenuBarController.showRingKey) private var showRing = true
+    @AppStorage(MenuBarController.showBudgetKey) private var showBudget = true
+    @AppStorage(MenuBarController.showSessionKey) private var showSession = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
+            row(icon: "circle.dashed", title: "Menu Bar Usage Ring", isOn: $showRing)
+            row(icon: "dollarsign.circle", title: "Menu Bar Spend", isOn: $showBudget)
+            row(icon: "clock.arrow.circlepath", title: "Menu Bar Reset Time", isOn: $showSession)
+        }
+    }
+
+    private func row(icon: String, title: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
+        Button(action: { isOn.wrappedValue.toggle() }) {
+            SettingsRowView(icon: icon, title: title) {
+                ToggleSwitch(isOn: isOn.wrappedValue)
+            }
         }
         .buttonStyle(.plain)
     }

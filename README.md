@@ -5,7 +5,11 @@ readout added on top of the notch companion.
 
 ## What this fork adds
 
-- **Menu bar budget.** A monthly dollar limit that no API exposes — a work
+- **Menu bar readout.** Session usage ring, spend against budget, then time
+  until the session window resets — each one switched on or off under
+  Appearance in the notch panel settings, and each hidden automatically when it
+  has no data.
+- **Budget tracking.** A monthly dollar limit that no API exposes — a work
   account with a fixed allowance, for example — tracked from the cost computed
   out of the local Claude Code session logs. Green under an even burn, orange
   ahead of it, red once the limit is gone.

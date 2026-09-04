@@ -1,4 +1,5 @@
 import AppKit
+import SwiftUI
 
 /// Menu bar readout combining the manually configured spend budget with the
 /// subscription's five-hour window, so both are visible at a glance without
@@ -7,42 +8,25 @@ import AppKit
 final class MenuBarController: NSObject, NSMenuDelegate {
     static let shared = MenuBarController()
 
+    static let showRingKey = "menuBarShowRing"
     static let showBudgetKey = "menuBarShowBudget"
     static let showSessionKey = "menuBarShowSession"
 
     static func registerDefaults(in defaults: UserDefaults = .standard) {
         defaults.register(defaults: [
+            showRingKey: true,
             showBudgetKey: true,
             showSessionKey: true,
         ])
     }
 
-    static var showsBudget: Bool {
-        get { UserDefaults.standard.object(forKey: showBudgetKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: showBudgetKey) }
-    }
-
-    static var showsSession: Bool {
-        get { UserDefaults.standard.object(forKey: showSessionKey) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: showSessionKey) }
-    }
-
     private var statusItem: NSStatusItem?
+    private var hostingView: NSHostingView<MenuBarUsageView>?
     private var refreshTimer: Timer?
+    private var defaultsObserver: NSObjectProtocol?
     private let tracker: BudgetTracker
     private let sessionNotifier: SessionResetNotifier
     private let refreshInterval: TimeInterval = 15
-
-    private static let currencyFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .currency
-        f.locale = Locale(identifier: "en_US")
-        f.currencyCode = "USD"
-        f.currencySymbol = "$"
-        f.minimumFractionDigits = 2
-        f.maximumFractionDigits = 2
-        return f
-    }()
 
     private static let dayFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -67,11 +51,17 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         tracker.start()
         sessionNotifier.start()
         installStatusItem()
-        updateTitle()
+        resizeToFit()
+        // Toggling a part on or off changes how wide the item needs to be.
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor in self?.resizeToFit() }
+        }
         refreshTimer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.tracker.recompute()
-                self?.updateTitle()
+                self?.resizeToFit()
             }
         }
     }
@@ -79,14 +69,23 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     func stop() {
         refreshTimer?.invalidate()
         refreshTimer = nil
+        if let defaultsObserver {
+            NotificationCenter.default.removeObserver(defaultsObserver)
+            self.defaultsObserver = nil
+        }
         sessionNotifier.stop()
         if let statusItem {
             NSStatusBar.system.removeStatusItem(statusItem)
             self.statusItem = nil
+            hostingView = nil
         }
     }
 
     // MARK: - Status item
+
+    private static let horizontalPadding: CGFloat = 6
+    /// Kept above zero so the item stays clickable when every part is hidden.
+    private static let minimumWidth: CGFloat = 24
 
     private func installStatusItem() {
         guard statusItem == nil else { return }
@@ -94,32 +93,27 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         item.menu = menu
+
+        if let button = item.button {
+            let view = NSHostingView(rootView: MenuBarUsageView(
+                tracker: tracker, usageService: ClaudeUsageService.shared))
+            view.translatesAutoresizingMaskIntoConstraints = false
+            button.addSubview(view)
+            NSLayoutConstraint.activate([
+                view.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+                view.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            ])
+            hostingView = view
+        }
         statusItem = item
     }
 
-    private func updateTitle() {
-        guard let button = statusItem?.button else { return }
-        let budget = tracker.status
-        var segments: [String] = []
-        if Self.showsBudget, let budget {
-            segments.append("\(Self.usd(budget.spentUSD)) / \(Self.usdRounded(budget.limitUSD))")
-        }
-        if Self.showsSession, let reset = sessionNotifier.sessionQuota?.formattedResetTime {
-            segments.append(reset)
-        }
-        let text = segments.isEmpty ? "usage" : segments.joined(separator: " · ")
-        button.attributedTitle = NSAttributedString(string: text, attributes: [
-            .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular),
-            .foregroundColor: budget.map { color(for: $0.pace) } ?? NSColor.labelColor,
-        ])
-    }
-
-    private func color(for pace: BudgetPace) -> NSColor {
-        switch pace {
-        case .under: .systemGreen
-        case .ahead: .systemOrange
-        case .over: .systemRed
-        }
+    /// SwiftUI sizes the content, but the status item length has to follow it by hand.
+    private func resizeToFit() {
+        guard let statusItem, let hostingView else { return }
+        hostingView.layoutSubtreeIfNeeded()
+        let width = hostingView.fittingSize.width + Self.horizontalPadding * 2
+        statusItem.length = max(width, Self.minimumWidth)
     }
 
     // MARK: - Menu
@@ -127,7 +121,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         tracker.recompute()
         sessionNotifier.check()
-        updateTitle()
+        resizeToFit()
         menu.removeAllItems()
 
         menu.addItem(sectionHeader("Budget"))
@@ -165,12 +159,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             .extraUsageDisplay(ClaudeUsageService.shared.currentExtraUsage) != nil
         menu.addItem(reportedToggle)
         menu.addItem(toggle(
-            title: "Show Budget in Menu Bar", isOn: Self.showsBudget,
-            selector: #selector(toggleShowBudget)))
-        menu.addItem(toggle(
-            title: "Show Session Reset in Menu Bar", isOn: Self.showsSession,
-            selector: #selector(toggleShowSession)))
-        menu.addItem(toggle(
             title: "Notify on Session Reset", isOn: SessionResetNotifier.notifiesOnReset,
             selector: #selector(toggleNotifyOnReset)))
         menu.addItem(toggle(
@@ -185,15 +173,15 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private func budgetLines(for status: BudgetStatus) -> [String] {
         let percent = Int((status.fractionUsed * 100).rounded())
         var lines = [
-            "Spent \(Self.usd(status.spentUSD)) of \(Self.usdRounded(status.limitUSD)) (\(percent)%)",
+            "Spent \(MenuBarFormatter.usd(status.spentUSD)) of \(MenuBarFormatter.usdRounded(status.limitUSD)) (\(percent)%)",
             "Period from \(Self.dayFormatter.string(from: status.periodStart)) — day \(status.dayIndex) of \(status.daysInPeriod)",
-            "Even burn would be at \(Self.usd(status.expectedByNowUSD))",
-            "Average \(Self.usd(status.averagePerDayUSD))/day, projected \(Self.usd(status.projectedTotalUSD))",
+            "Even burn would be at \(MenuBarFormatter.usd(status.expectedByNowUSD))",
+            "Average \(MenuBarFormatter.usd(status.averagePerDayUSD))/day, projected \(MenuBarFormatter.usd(status.projectedTotalUSD))",
         ]
         if status.remainingUSD > 0 {
-            lines.append("Left \(Self.usd(status.remainingUSD)) — \(Self.usd(status.remainingPerDayUSD))/day for \(status.daysRemaining + 1) days")
+            lines.append("Left \(MenuBarFormatter.usd(status.remainingUSD)) — \(MenuBarFormatter.usd(status.remainingPerDayUSD))/day for \(status.daysRemaining + 1) days")
         } else {
-            lines.append("Over budget by \(Self.usd(-status.remainingUSD))")
+            lines.append("Over budget by \(MenuBarFormatter.usd(-status.remainingUSD))")
         }
         switch status.source {
         case .reported:
@@ -222,7 +210,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             lines.append("\(name) week \(model.usagePercentage)% — \(resetPhrase(for: model))")
         }
         if let extra = UsageMetrics.extraUsageDisplay(ClaudeUsageService.shared.currentExtraUsage) {
-            lines.append("Extra usage \(Self.usd(extra.usedCredits)) of \(Self.usdRounded(extra.monthlyLimit)) (\(extra.percentUsed)%)")
+            lines.append("Extra usage \(MenuBarFormatter.usd(extra.usedCredits)) of \(MenuBarFormatter.usdRounded(extra.monthlyLimit)) (\(extra.percentUsed)%)")
         }
         if let lastReset = sessionNotifier.lastResetAt {
             lines.append("Last rollover at \(Self.clockFormatter.string(from: lastReset))")
@@ -274,10 +262,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         guard let value = promptForNumber(
             message: String(localized: "Monthly budget"),
             informative: String(localized: "The dollar limit for one budget period."),
-            initial: Self.plain(BudgetSettings.limitUSD)) else { return }
+            initial: MenuBarFormatter.plain(BudgetSettings.limitUSD)) else { return }
         BudgetSettings.limitUSD = value
         tracker.recompute()
-        updateTitle()
+        resizeToFit()
     }
 
     @objc private func promptForCurrentSpend() {
@@ -288,9 +276,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         guard let value = promptForNumber(
             message: String(localized: "Current spend this period"),
             informative: informative,
-            initial: Self.plain(tracker.status?.spentUSD ?? 0)) else { return }
+            initial: MenuBarFormatter.plain(tracker.status?.spentUSD ?? 0)) else { return }
         tracker.calibrate(to: value)
-        updateTitle()
+        resizeToFit()
     }
 
     @objc private func promptForResetDay() {
@@ -301,34 +289,24 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             initial: String(BudgetSettings.resetDay)) else { return }
         BudgetSettings.resetDay = Int(value.rounded())
         tracker.recompute()
-        updateTitle()
+        resizeToFit()
     }
 
     @objc private func clearCalibration() {
         tracker.clearCalibration()
-        updateTitle()
+        resizeToFit()
     }
 
     @objc private func toggleBudgetTracking() {
         BudgetSettings.isEnabled.toggle()
         tracker.recompute()
-        updateTitle()
+        resizeToFit()
     }
 
     @objc private func toggleReportedSpend() {
         BudgetSettings.prefersReportedSpend.toggle()
         tracker.recompute()
-        updateTitle()
-    }
-
-    @objc private func toggleShowBudget() {
-        Self.showsBudget.toggle()
-        updateTitle()
-    }
-
-    @objc private func toggleShowSession() {
-        Self.showsSession.toggle()
-        updateTitle()
+        resizeToFit()
     }
 
     @objc private func toggleNotifyOnReset() {
@@ -343,7 +321,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         Task { @MainActor in
             await tracker.refresh()
             sessionNotifier.check()
-            updateTitle()
+            resizeToFit()
         }
     }
 
@@ -375,18 +353,4 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         return Double(cleaned)
     }
 
-    // MARK: - Formatting
-
-    private static func usd(_ amount: Double) -> String {
-        currencyFormatter.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
-    }
-
-    /// Whole dollars for figures the user typed themselves, which are rarely fractional.
-    private static func usdRounded(_ amount: Double) -> String {
-        amount == amount.rounded() ? "$\(Int(amount))" : usd(amount)
-    }
-
-    private static func plain(_ amount: Double) -> String {
-        amount == amount.rounded() ? String(Int(amount)) : String(format: "%.2f", amount)
-    }
 }
