@@ -38,6 +38,16 @@ Auto-updates are disabled so upstream releases do not replace this build.
 
 ### Install
 
+Without Xcode, from the latest GitHub release (built by CI, ad-hoc signed):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/elumixor/notchi/main/scripts/install-release.sh | bash
+```
+
+Re-run the same command to update. Releases are cut by pushing a `v*` tag.
+
+From source, with Xcode installed:
+
 ```sh
 ./scripts/create-signing-identity.sh   # once
 ./scripts/install.sh
