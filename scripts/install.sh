@@ -21,7 +21,7 @@ xcodebuild build \
     -configuration Release \
     -derivedDataPath "$DERIVED_DATA_PATH" \
     CODE_SIGN_IDENTITY=- \
-    CODE_SIGNING_REQUIRED=NO \
+    ENABLE_HARDENED_RUNTIME=NO \
     > "$REPO_ROOT/build/install.log" 2>&1
 
 if [[ ! -d "$BUILT_APP" ]]; then
