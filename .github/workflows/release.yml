@@ -48,6 +48,10 @@ jobs:
         run: |
           mkdir -p dist
           cp -R build/release/Build/Products/Release/notchi.app dist/Notchi.app
+          # Apple silicon refuses to run unsigned binaries; sign ad-hoc explicitly
+          # rather than rely on xcodebuild having done so on the runner.
+          codesign --force --deep --sign - dist/Notchi.app
+          codesign --verify --deep --strict dist/Notchi.app
           ditto -c -k --keepParent dist/Notchi.app dist/Notchi.zip
           shasum -a 256 dist/Notchi.zip | tee dist/Notchi.zip.sha256
 
