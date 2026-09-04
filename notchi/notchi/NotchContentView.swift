@@ -564,10 +564,10 @@ struct NotchContentView: View {
             HStack(spacing: Self.readoutSpacing) {
                 if let status = readoutBudget {
                     if BudgetSettings.showsLimit {
-                        Text("\(BudgetFormatter.usd(status.spentUSD)) / \(BudgetFormatter.usdRounded(status.limitUSD))")
+                        Text("\(BudgetFormatter.usdCompact(status.spentUSD)) / \(BudgetFormatter.usdRounded(status.limitUSD))")
                             .foregroundColor(paceColor(for: status.pace))
                     } else {
-                        Text(BudgetFormatter.usd(status.spentUSD))
+                        Text(BudgetFormatter.usdCompact(status.spentUSD))
                             .foregroundColor(.white.opacity(0.9))
                     }
                 }

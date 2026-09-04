@@ -21,6 +21,11 @@ nonisolated enum BudgetFormatter {
         amount == amount.rounded() ? "$\(Int(amount))" : usd(amount)
     }
 
+    /// Whole dollars for the notch, where space is short; cents only under a dollar.
+    static func usdCompact(_ amount: Double) -> String {
+        amount < 1 ? usd(amount) : "$\(Int(amount.rounded()))"
+    }
+
     static func plain(_ amount: Double) -> String {
         amount == amount.rounded() ? String(Int(amount)) : String(format: "%.2f", amount)
     }
