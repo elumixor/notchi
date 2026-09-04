@@ -13,6 +13,7 @@ enum BudgetSettings {
     static let anchorDayCostUSDKey = "budgetAnchorDayCostUSD"
     static let anchorSetAtKey = "budgetAnchorSetAt"
     static let prefersReportedSpendKey = "budgetPrefersReportedSpend"
+    static let showsLimitKey = "budgetShowsLimit"
 
     static let defaultLimitUSD: Double = 100
     static let defaultResetDay = 1
@@ -26,6 +27,7 @@ enum BudgetSettings {
             limitUSDKey: defaultLimitUSD,
             resetDayKey: defaultResetDay,
             prefersReportedSpendKey: false,
+            showsLimitKey: true,
         ])
     }
 
@@ -41,6 +43,13 @@ enum BudgetSettings {
     static var prefersReportedSpend: Bool {
         get { UserDefaults.standard.object(forKey: prefersReportedSpendKey) as? Bool ?? false }
         set { UserDefaults.standard.set(newValue, forKey: prefersReportedSpendKey) }
+    }
+
+    /// Whether the notch compares spend against the limit ("$12 / $100", coloured
+    /// by pace) or just shows the spend on its own, for plans with no dollar cap.
+    static var showsLimit: Bool {
+        get { UserDefaults.standard.object(forKey: showsLimitKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: showsLimitKey) }
     }
 
     static var limitUSD: Double {

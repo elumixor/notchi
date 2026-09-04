@@ -102,6 +102,18 @@ nonisolated struct QuotaPeriod: Codable, Equatable, Sendable {
         return resetDate <= Date()
     }
 
+    /// Short form for the collapsed notch: "4.8h" above an hour, "59m" below it.
+    var compactResetTime: String? {
+        guard let resetDate else { return nil }
+        let interval = resetDate.timeIntervalSince(Date())
+        guard interval > 0 else { return nil }
+        if interval >= 3600 {
+            let hours = interval / 3600
+            return hours >= 10 ? "\(Int(hours.rounded()))h" : String(format: "%.1fh", hours)
+        }
+        return "\(max(1, Int((interval / 60).rounded())))m"
+    }
+
     var formattedResetTime: String? {
         guard let resetDate else { return nil }
         let now = Date()

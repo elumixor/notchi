@@ -179,15 +179,15 @@ private struct MainUsageBarSettingsView: View {
     }
 }
 
-/// Which figures are shown beside the usage ring in the collapsed notch.
+/// Which figures the "Spend & Reset Time" notch slot shows.
 private struct NotchReadoutSettingsView: View {
     @AppStorage(AppSettings.notchShowSpendKey) private var showSpend = true
     @AppStorage(AppSettings.notchShowResetTimeKey) private var showResetTime = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
-            row(icon: "dollarsign.circle", title: "Spend Next to Ring", isOn: $showSpend)
-            row(icon: "clock.arrow.circlepath", title: "Reset Time Next to Ring", isOn: $showResetTime)
+            row(icon: "dollarsign.circle", title: "Show Spend", isOn: $showSpend)
+            row(icon: "clock.arrow.circlepath", title: "Show Reset Time", isOn: $showResetTime)
         }
     }
 

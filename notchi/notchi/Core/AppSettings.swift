@@ -98,6 +98,7 @@ enum EmotionAnalysisModel: String, CaseIterable, Identifiable {
 enum NotchSlotContent: String, CaseIterable, Identifiable {
     case latest
     case ring
+    case usage
     case claude
     case codex
     case nothing
@@ -108,6 +109,7 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
         switch self {
         case .latest: String(localized: "Latest Session Mascot")
         case .ring: String(localized: "Usage Ring")
+        case .usage: String(localized: "Spend & Reset Time")
         case .claude: String(localized: "Claude Mascot")
         case .codex: String(localized: "Codex Mascot")
         case .nothing: String(localized: "Nothing")
@@ -118,14 +120,14 @@ enum NotchSlotContent: String, CaseIterable, Identifiable {
         switch self {
         case .claude: .claude
         case .codex: .codex
-        case .nothing, .ring, .latest: nil
+        case .nothing, .ring, .usage, .latest: nil
         }
     }
 
     var isSprite: Bool {
         switch self {
         case .latest, .claude, .codex: true
-        case .nothing, .ring: false
+        case .nothing, .ring, .usage: false
         }
     }
 

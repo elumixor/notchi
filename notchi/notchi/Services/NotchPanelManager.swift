@@ -108,12 +108,13 @@ final class NotchPanelManager {
         hoverCollapseDelay: Duration = .milliseconds(500),
         activeSessionCountProvider: @escaping @MainActor () -> Int = { SessionStore.shared.activeSessionCount },
         collapsedRingVisibleProvider: @escaping @MainActor () -> Bool = {
-            guard AppSettings.isUsageEnabled,
-                  AppSettings.notchLeftContent == .ring || AppSettings.notchRightContent == .ring else {
-                return false
-            }
-            if AppSettings.notchShowSpend, BudgetTracker.shared.status != nil {
+            guard AppSettings.isUsageEnabled else { return false }
+            if AppSettings.notchLeftContent == .usage || AppSettings.notchRightContent == .usage,
+               AppSettings.notchShowSpend, BudgetTracker.shared.status != nil {
                 return true
+            }
+            guard AppSettings.notchLeftContent == .ring || AppSettings.notchRightContent == .ring else {
+                return false
             }
             return NotchContentView.collapsedRingPercentage(
                 isUsageEnabled: AppSettings.isUsageEnabled,

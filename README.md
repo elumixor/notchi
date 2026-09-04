@@ -5,10 +5,12 @@ readout added to the notch companion.
 
 ## What this fork adds
 
-- **Notch readout.** Next to the usage ring in the collapsed notch: spend
-  against budget, then time until the session window resets. Each is switched
-  on or off under Appearance in the notch panel settings, and each is hidden
-  automatically when it has no data.
+- **Notch readout.** A "Spend & Reset Time" option for either notch side, next
+  to the existing Usage Ring option, showing spend and time until the session
+  window resets ("4.8h", "59m"). Each figure is switched on or off under
+  Appearance and hidden when it has no data. The ring shows its percentage in
+  the middle. "Compare Against Limit" on the Budget screen turns "$12 / $100"
+  into plain "$12" for a plan with no dollar cap.
 - **Budget tracking.** A monthly dollar limit that no API exposes — a work
   account with a fixed allowance, for example — tracked from the cost computed
   out of the local Claude Code session logs. Green under an even burn, orange

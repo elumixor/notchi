@@ -8,6 +8,7 @@ struct SettingsBudgetView: View {
 
     @State private var isEnabled = BudgetSettings.isEnabled
     @State private var prefersReportedSpend = BudgetSettings.prefersReportedSpend
+    @State private var showsLimit = BudgetSettings.showsLimit
     @State private var limitInput = BudgetFormatter.plain(BudgetSettings.limitUSD)
     @State private var resetDayInput = String(BudgetSettings.resetDay)
     @State private var spendInput = ""
@@ -37,7 +38,13 @@ struct SettingsBudgetView: View {
                 }
 
                 if isEnabled {
-                    fieldRow(icon: "dollarsign.circle", title: "Monthly Limit", text: $limitInput, field: .limit, commit: saveLimit)
+                    toggleRow(icon: "gauge.with.needle", title: "Compare Against Limit", isOn: showsLimit) {
+                        showsLimit.toggle()
+                        BudgetSettings.showsLimit = showsLimit
+                    }
+                    if showsLimit {
+                        fieldRow(icon: "dollarsign.circle", title: "Monthly Limit", text: $limitInput, field: .limit, commit: saveLimit)
+                    }
                     fieldRow(icon: "calendar", title: "Reset Day", text: $resetDayInput, field: .resetDay, commit: saveResetDay)
 
                     Divider().background(Color.white.opacity(0.08))
@@ -73,6 +80,7 @@ struct SettingsBudgetView: View {
         .scrollIndicators(.never)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .animation(.spring(response: 0.3), value: isEnabled)
+        .animation(.spring(response: 0.3), value: showsLimit)
         .onAppear {
             tracker.recompute()
             spendInput = BudgetFormatter.plain(tracker.status?.spentUSD ?? 0)

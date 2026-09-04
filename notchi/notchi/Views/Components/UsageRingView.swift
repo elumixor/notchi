@@ -5,6 +5,8 @@ struct UsageRingView: View {
     var diameter: CGFloat = 15
     var lineWidth: CGFloat = 3
     var isStale: Bool = false
+    /// Text drawn in the middle of the ring, for example the percentage.
+    var label: String? = nil
 
     @State private var drawProgress: CGFloat = 0
 
@@ -34,6 +36,14 @@ struct UsageRingView: View {
                     ringColor,
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
+            if let label {
+                Text(label)
+                    .font(.system(size: diameter * 0.36, weight: .semibold).monospacedDigit())
+                    .foregroundColor(ringColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .padding(lineWidth + 1)
+            }
         }
         .frame(width: diameter, height: diameter)
         .onAppear {
