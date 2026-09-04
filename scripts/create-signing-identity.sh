@@ -18,7 +18,18 @@ if security find-certificate -c "$IDENTITY_NAME" "$KEYCHAIN" >/dev/null 2>&1; th
     exit 0
 fi
 
-echo "==> Generating certificate"
+# The system openssl is LibreSSL, which cannot write the PKCS#12 encoding
+# Security.framework reads; prefer Homebrew's OpenSSL 3 when it is installed.
+OPENSSL="$(command -v openssl)"
+for candidate in /opt/homebrew/opt/openssl@3/bin/openssl /usr/local/opt/openssl@3/bin/openssl; do
+    if [[ -x "$candidate" ]]; then OPENSSL="$candidate"; break; fi
+done
+P12_FLAGS=()
+if "$OPENSSL" pkcs12 -help 2>&1 | grep -q -- '-legacy'; then
+    P12_FLAGS+=(-legacy)
+fi
+
+echo "==> Generating certificate (using $OPENSSL)"
 cat > "$WORK_DIR/openssl.cnf" <<EOF
 [ req ]
 distinguished_name = dn
@@ -35,7 +46,7 @@ extendedKeyUsage = critical,codeSigning
 1.2.840.113635.100.6.1.14 = critical,DER:0500
 EOF
 
-openssl req -x509 -newkey rsa:2048 -nodes \
+"$OPENSSL" req -x509 -newkey rsa:2048 -nodes \
     -keyout "$WORK_DIR/key.pem" -out "$WORK_DIR/cert.pem" \
     -days 3650 -config "$WORK_DIR/openssl.cnf" 2>/dev/null
 
@@ -43,7 +54,7 @@ openssl req -x509 -newkey rsa:2048 -nodes \
 # default, and it rejects an empty password outright, so use the legacy
 # encoding with a throwaway passphrase.
 P12_PASSWORD="notchi-local"
-openssl pkcs12 -export -legacy -inkey "$WORK_DIR/key.pem" -in "$WORK_DIR/cert.pem" \
+"$OPENSSL" pkcs12 -export "${P12_FLAGS[@]}" -inkey "$WORK_DIR/key.pem" -in "$WORK_DIR/cert.pem" \
     -out "$WORK_DIR/identity.p12" -passout "pass:$P12_PASSWORD" -name "$IDENTITY_NAME" 2>/dev/null
 
 echo "==> Importing into the login keychain"
