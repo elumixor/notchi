@@ -33,6 +33,7 @@ jobs:
 
       - name: Build Release
         run: |
+          set -o pipefail
           xcodebuild build \
             -project notchi/notchi.xcodeproj \
             -scheme notchi \
@@ -41,8 +42,8 @@ jobs:
             -derivedDataPath build/release \
             CODE_SIGN_IDENTITY="-" \
             ENABLE_HARDENED_RUNTIME=NO \
-            | tail -n 40
-          test -d build/release/Build/Products/Release/notchi.app
+            | grep -E "error:|warning: unre|BUILD|Compiling|Linking|Failed|failed" || true
+          test -x build/release/Build/Products/Release/notchi.app/Contents/MacOS/notchi
 
       - name: Package
         run: |
