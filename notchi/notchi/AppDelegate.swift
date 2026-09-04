@@ -46,7 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
         AppSettings.registerDefaults()
         BudgetSettings.registerDefaults()
         SessionResetNotifier.registerDefaults()
-        MenuBarController.registerDefaults()
+        AppSettings.registerNotchReadoutDefaults()
         guard !isRunningTests else { return }
 
         NSApplication.shared.setActivationPolicy(.accessory)
@@ -57,7 +57,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
         observePanelExpansionChanges()
         observeWakeNotifications()
         startProviderServices()
-        MenuBarController.shared.start()
+        BudgetTracker.shared.start()
+        SessionResetNotifier.shared.start()
         startUpdater()
     }
 
@@ -87,7 +88,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
         removeMinimizeShortcutGuard()
         globalShortcutService.stop()
         integrationCoordinator.stop()
-        MenuBarController.shared.stop()
+        SessionResetNotifier.shared.stop()
         ClaudeUsageService.shared.stopPolling()
     }
 
@@ -187,6 +188,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
             name: NSWorkspace.didWakeNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(refreshTrackingAreas),
+            name: .notchiCollapsedGeometryDidChange,
+            object: nil
+        )
+    }
+
+    @objc private func refreshTrackingAreas() {
+        MainActor.assumeIsolated {
+            notchPanel?.contentView?.updateTrackingAreas()
+        }
     }
 
     @objc private func repositionWindow() {

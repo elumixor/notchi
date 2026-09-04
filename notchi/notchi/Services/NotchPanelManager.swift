@@ -14,14 +14,30 @@ final class NotchPanelManager {
     static let collapsedHoverBottomInset: CGFloat = 5
 
     private static let compactNotchPaddingTotal: CGFloat = 16
-    private static func makeCompactNotchRect(notchSize: CGSize, notchRect: CGRect) -> CGRect {
+    private static func makeCompactNotchRect(notchSize: CGSize, notchRect: CGRect, centerX: CGFloat) -> CGRect {
         CGRect(
-            x: notchRect.midX - ((notchSize.width + compactNotchPaddingTotal) / 2),
+            x: centerX - ((notchSize.width + compactNotchPaddingTotal) / 2),
             y: notchRect.minY,
             width: notchSize.width + compactNotchPaddingTotal,
             height: notchRect.height
         )
     }
+    private static func makeNotchRect(
+        notchSize: CGSize,
+        centerX: CGFloat,
+        top: CGFloat,
+        extraWidth: (left: CGFloat, right: CGFloat)
+    ) -> CGRect {
+        let sideWidth = max(0, notchSize.height - 12) + 24
+        let baseWidth = notchSize.width + sideWidth
+        return CGRect(
+            x: centerX - baseWidth / 2 - extraWidth.left,
+            y: top - notchSize.height,
+            width: baseWidth + extraWidth.left + extraWidth.right,
+            height: notchSize.height
+        )
+    }
+
     private static func makeCollapsedHoverRect(baseRect: CGRect) -> CGRect {
         CGRect(
             x: baseRect.minX - collapsedHoverHorizontalInset,
@@ -60,6 +76,12 @@ final class NotchPanelManager {
     private(set) var screenHasNotch = false
     private(set) var notchRect: CGRect = .zero
     private(set) var compactNotchRect: CGRect = .zero
+    /// Horizontal centre of the physical notch, kept so the rects can be rebuilt
+    /// when the collapsed content grows to one side.
+    private(set) var notchCenterX: CGFloat = 0
+    /// Extra collapsed width beyond the two sprite slots, per side, taken up by
+    /// the usage readout next to the ring.
+    private(set) var collapsedExtraWidth: (left: CGFloat, right: CGFloat) = (0, 0)
     private(set) var panelRect: CGRect = .zero
     private(set) var panelScale: CGFloat = 1
     private(set) var visibleScreenHeight: CGFloat = 0
@@ -89,6 +111,9 @@ final class NotchPanelManager {
             guard AppSettings.isUsageEnabled,
                   AppSettings.notchLeftContent == .ring || AppSettings.notchRightContent == .ring else {
                 return false
+            }
+            if AppSettings.notchShowSpend, BudgetTracker.shared.status != nil {
+                return true
             }
             return NotchContentView.collapsedRingPercentage(
                 isUsageEnabled: AppSettings.isUsageEnabled,
@@ -147,18 +172,15 @@ final class NotchPanelManager {
         screenHasNotch = screen.hasNotch
         systemNotchPath = screen.notchPath
 
-        let notchCenterX = screenFrame.origin.x + screenFrame.width / 2
-        let sideWidth = max(0, newNotchSize.height - 12) + 24
-        let notchTotalWidth = newNotchSize.width + sideWidth
-
-        notchRect = CGRect(
-            x: notchCenterX - notchTotalWidth / 2,
-            y: screenFrame.maxY - newNotchSize.height,
-            width: notchTotalWidth,
-            height: newNotchSize.height
+        notchCenterX = screenFrame.origin.x + screenFrame.width / 2
+        notchRect = Self.makeNotchRect(
+            notchSize: newNotchSize,
+            centerX: notchCenterX,
+            top: screenFrame.maxY,
+            extraWidth: collapsedExtraWidth
         )
-
-        compactNotchRect = Self.makeCompactNotchRect(notchSize: newNotchSize, notchRect: notchRect)
+        compactNotchRect = Self.makeCompactNotchRect(
+            notchSize: newNotchSize, notchRect: notchRect, centerX: notchCenterX)
 
         visibleScreenHeight = screen.visibleFrame.height
         panelScale = AppSettings.expandedPanelScale(in: userDefaults)
@@ -188,12 +210,30 @@ final class NotchPanelManager {
         self.notchRect = notchRect
         self.panelRect = panelRect
         self.systemNotchPath = systemNotchPath
+        notchCenterX = notchRect.midX
 
-        compactNotchRect = Self.makeCompactNotchRect(notchSize: notchSize, notchRect: notchRect)
+        compactNotchRect = Self.makeCompactNotchRect(
+            notchSize: notchSize, notchRect: notchRect, centerX: notchCenterX)
 
         refreshIdleMode()
     }
 #endif
+
+    /// Widens the collapsed hit area to cover the readout beside the ring.
+    func setCollapsedExtraWidth(left: CGFloat, right: CGFloat) {
+        let left = max(0, left.rounded())
+        let right = max(0, right.rounded())
+        guard left != collapsedExtraWidth.left || right != collapsedExtraWidth.right else { return }
+        collapsedExtraWidth = (left, right)
+        guard notchSize != .zero else { return }
+        notchRect = Self.makeNotchRect(
+            notchSize: notchSize,
+            centerX: notchCenterX,
+            top: notchRect.maxY,
+            extraWidth: collapsedExtraWidth
+        )
+        notificationCenter.post(name: .notchiCollapsedGeometryDidChange, object: self)
+    }
 
     func expand() {
         guard !isExpanded else { return }

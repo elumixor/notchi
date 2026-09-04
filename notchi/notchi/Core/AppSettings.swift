@@ -193,6 +193,8 @@ struct AppSettings {
     static let panelToggleShortcutKey = "panelToggleShortcut"
     static let notchLeftContentKey = "notchLeftContent"
     static let notchRightContentKey = "notchRightContent"
+    static let notchShowSpendKey = "notchShowSpend"
+    static let notchShowResetTimeKey = "notchShowResetTime"
     static let expandedPanelScaleKey = "expandedPanelScale"
     static let mainUsageBarPeriodKey = "mainUsageBarPeriod"
 
@@ -297,6 +299,25 @@ struct AppSettings {
             showGrassIslandKey: true,
             showGitBranchAndPullRequestKey: true,
         ])
+    }
+
+    static func registerNotchReadoutDefaults(in defaults: UserDefaults = .standard) {
+        defaults.register(defaults: [
+            notchShowSpendKey: true,
+            notchShowResetTimeKey: true,
+        ])
+    }
+
+    /// Whether the budget spend is shown beside the usage ring in the collapsed notch.
+    static var notchShowSpend: Bool {
+        get { UserDefaults.standard.object(forKey: notchShowSpendKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: notchShowSpendKey) }
+    }
+
+    /// Whether the time until the session window resets is shown in the collapsed notch.
+    static var notchShowResetTime: Bool {
+        get { UserDefaults.standard.object(forKey: notchShowResetTimeKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: notchShowResetTimeKey) }
     }
 
     static func showSpriteWhenIdle(in defaults: UserDefaults) -> Bool {

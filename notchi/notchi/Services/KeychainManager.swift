@@ -345,58 +345,52 @@ enum KeychainManager {
 
     // MARK: - Generic Keychain Helpers
 
-    // Even own-service keychain items can trigger a Security dialog when the app's
-    // code signature changes between Xcode rebuilds, invalidating prior "Always Allow".
+    // Own-service items go through /usr/bin/security rather than Security.framework.
+    // Framework access is gated by the item's partition list, which names the
+    // signing identity that created the item; a locally signed build is never on
+    // that list, so every read or update raised a password dialog. Items written
+    // by the CLI carry the apple-tool partition and stay silent for later reads.
     private static func readString(service: String, account: String, allowInteraction: Bool) -> String? {
-        var query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        if !allowInteraction {
-            query[kSecUseAuthenticationUI as String] = kSecUseAuthenticationUISkip
-        }
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let string = String(data: data, encoding: .utf8) else {
+        guard let output = runSecurity(["find-generic-password", "-s", service, "-a", account, "-w"]) else {
             return nil
         }
-
-        return string
+        let value = output.trimmingCharacters(in: .newlines)
+        return value.isEmpty ? nil : value
     }
 
     private static func saveString(_ value: String, service: String, account: String) {
-        let data = Data(value.utf8)
-
-        // Try to update existing item first
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        let update: [String: Any] = [kSecValueData as String: data]
-        let status = SecItemUpdate(query as CFDictionary, update as CFDictionary)
-
-        if status == errSecItemNotFound {
-            var addQuery = query
-            addQuery[kSecValueData as String] = data
-            SecItemAdd(addQuery as CFDictionary, nil)
-        }
+        // -U updates in place when the item already exists.
+        _ = runSecurity(["add-generic-password", "-U", "-s", service, "-a", account, "-w", value])
     }
 
     private static func deleteItem(service: String, account: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-        SecItemDelete(query as CFDictionary)
+        _ = runSecurity(["delete-generic-password", "-s", service, "-a", account])
+    }
+
+    /// Runs the security tool and returns its standard output, or nil on failure or timeout.
+    private static func runSecurity(_ arguments: [String]) -> String? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        process.arguments = arguments
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        let done = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in done.signal() }
+
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+
+        if done.wait(timeout: .now() + .seconds(2)) == .timedOut {
+            process.terminate()
+            return nil
+        }
+
+        guard process.terminationStatus == 0 else { return nil }
+        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)
     }
 }

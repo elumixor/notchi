@@ -42,7 +42,7 @@ struct SettingsAppearanceView: View {
 
             Divider().background(Color.white.opacity(0.08))
 
-            MenuBarSettingsView()
+            NotchReadoutSettingsView()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
@@ -179,17 +179,15 @@ private struct MainUsageBarSettingsView: View {
     }
 }
 
-/// Which parts of the menu bar readout are shown, in the order they appear there.
-private struct MenuBarSettingsView: View {
-    @AppStorage(MenuBarController.showRingKey) private var showRing = true
-    @AppStorage(MenuBarController.showBudgetKey) private var showBudget = true
-    @AppStorage(MenuBarController.showSessionKey) private var showSession = true
+/// Which figures are shown beside the usage ring in the collapsed notch.
+private struct NotchReadoutSettingsView: View {
+    @AppStorage(AppSettings.notchShowSpendKey) private var showSpend = true
+    @AppStorage(AppSettings.notchShowResetTimeKey) private var showResetTime = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
-            row(icon: "circle.dashed", title: "Menu Bar Usage Ring", isOn: $showRing)
-            row(icon: "dollarsign.circle", title: "Menu Bar Spend", isOn: $showBudget)
-            row(icon: "clock.arrow.circlepath", title: "Menu Bar Reset Time", isOn: $showSession)
+            row(icon: "dollarsign.circle", title: "Spend Next to Ring", isOn: $showSpend)
+            row(icon: "clock.arrow.circlepath", title: "Reset Time Next to Ring", isOn: $showResetTime)
         }
     }
 

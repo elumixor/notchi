@@ -1,6 +1,7 @@
 enum SettingsScreen: Equatable {
     case general
     case appearance
+    case budget
     case emotionAnalysis
 }
 

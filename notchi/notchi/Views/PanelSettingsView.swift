@@ -102,6 +102,8 @@ struct PanelSettingsView: View {
             SettingsGeneralView()
         case .appearance:
             SettingsAppearanceView()
+        case .budget:
+            SettingsBudgetView()
         case .emotionAnalysis:
             EmotionAnalysisSettingsView()
         }
@@ -113,6 +115,7 @@ struct PanelSettingsView: View {
                 VStack(alignment: .leading, spacing: SettingsLayout.sectionSpacing) {
                     navigationRow(icon: "gearshape", title: "General", screen: .general)
                     navigationRow(icon: "paintbrush", title: "Appearance", screen: .appearance)
+                    navigationRow(icon: "dollarsign.circle", title: "Budget", screen: .budget)
                     Divider().background(Color.white.opacity(0.08))
                     integrationsSection
                     Divider().background(Color.white.opacity(0.08))

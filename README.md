@@ -1,14 +1,14 @@
 # Notchi (personal fork)
 
-A fork of [sk-ruban/notchi](https://github.com/sk-ruban/notchi) with a menu bar
-readout added on top of the notch companion.
+A fork of [sk-ruban/notchi](https://github.com/sk-ruban/notchi) with a spend
+readout added to the notch companion.
 
 ## What this fork adds
 
-- **Menu bar readout.** Session usage ring, spend against budget, then time
-  until the session window resets — each one switched on or off under
-  Appearance in the notch panel settings, and each hidden automatically when it
-  has no data.
+- **Notch readout.** Next to the usage ring in the collapsed notch: spend
+  against budget, then time until the session window resets. Each is switched
+  on or off under Appearance in the notch panel settings, and each is hidden
+  automatically when it has no data.
 - **Budget tracking.** A monthly dollar limit that no API exposes — a work
   account with a fixed allowance, for example — tracked from the cost computed
   out of the local Claude Code session logs. Green under an even burn, orange
@@ -18,20 +18,21 @@ readout added on top of the notch companion.
   straight through, no calibration involved. It is off by default because the
   figure only describes spend beyond what the subscription covers, so it reads
   zero for an account burning inside its plan.
-- **Manual calibration otherwise.** For an allowance no API exposes, `Set
-  Current Spend…` anchors to whatever the provider reports; usage from that
-  moment on is added to the anchor. The anchor is exact to the minute, not the
-  day. The menu says which of the three the number came from.
-- **Budget detail in the menu.** Spend against limit, where an even burn would
+- **Manual calibration otherwise.** For an allowance no API exposes, `Current
+  Spend` on the Budget settings screen anchors to whatever the provider
+  reports; usage from that moment on is added to the anchor. The anchor is
+  exact to the minute, not the day. The screen says which of the three the
+  number came from.
+- **Budget detail in settings.** Spend against limit, where an even burn would
   have been by now, average per day, projected period total, and what is left
   per remaining day.
 - **Session reset visibility.** The five-hour subscription window's remaining
-  time sits in the menu bar, and a notification fires when it rolls over so a
+  time sits in the notch, and a notification fires when it rolls over so a
   paused session can be picked up the moment tokens return. A second
   notification warns at 90% of the window.
 
-Everything is configured from the menu bar item. Auto-updates are disabled so
-upstream releases do not replace this build.
+Everything is configured from the Budget screen in the notch panel settings.
+Auto-updates are disabled so upstream releases do not replace this build.
 
 ### Install
 
@@ -41,10 +42,17 @@ upstream releases do not replace this build.
 ```
 
 The first script creates a self-signed certificate in the login keychain and
-every build is signed with it. Keychain access control lists follow the signing
-identity, so without a stable one macOS asks for the keychain password after
-every rebuild. The next launch asks once more — answer **Always Allow** and it
-holds from then on.
+every build is signed with it, so the app keeps one identity across rebuilds.
+The app's own keychain items are read and written through `/usr/bin/security`
+rather than Security.framework, because items created by the upstream build are
+bound to upstream's signing identity and every framework access from this build
+raised a password dialog. Delete the old `com.ruban.notchi` items once:
+
+```sh
+security delete-generic-password -s com.ruban.notchi -a cachedOAuthToken
+security delete-generic-password -s com.ruban.notchi -a anthropicApiKey
+security delete-generic-password -s com.ruban.notchi -a openAIApiKey
+```
 
 This builds Release and replaces `/Applications/Notchi.app`. The fork keeps the
 upstream bundle identifier, so it reuses the same preferences and hooks and only

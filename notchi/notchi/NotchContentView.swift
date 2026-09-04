@@ -87,6 +87,7 @@ struct PanelFontModifier: ViewModifier {
 extension Notification.Name {
     static let notchiShouldCollapse = Notification.Name("notchiShouldCollapse")
     static let notchiQuestionOptionShortcut = Notification.Name("notchiQuestionOptionShortcut")
+    static let notchiCollapsedGeometryDidChange = Notification.Name("notchiCollapsedGeometryDidChange")
 }
 
 private let cornerRadiusInsets = (
@@ -171,6 +172,10 @@ struct NotchContentView: View {
     @ObservedObject private var updateManager = UpdateManager.shared
     @AppStorage(AppSettings.notchLeftContentKey) private var leftContentRaw = NotchSlotContent.ring.rawValue
     @AppStorage(AppSettings.notchRightContentKey) private var rightContentRaw = NotchSlotContent.latest.rawValue
+    @AppStorage(AppSettings.notchShowSpendKey) private var showSpend = true
+    @AppStorage(AppSettings.notchShowResetTimeKey) private var showResetTime = true
+    var budgetTracker: BudgetTracker = .shared
+    @State private var readoutWidth: CGFloat = 0
     @State private var showingPanelSettings = false
     @State private var settingsPath: [SettingsScreen] = []
     @State private var showingUsageDetail = false
@@ -473,7 +478,102 @@ struct NotchContentView: View {
     }
 
     private var isCollapsedRingVisible: Bool {
-        (leftContent == .ring || rightContent == .ring) && usageRingPercentage != nil
+        (leftContent == .ring || rightContent == .ring) && (usageRingPercentage != nil || hasCollapsedReadout)
+    }
+
+    // MARK: - Collapsed usage readout
+
+    private static let readoutSpacing: CGFloat = 5
+    private static let readoutFontSize: CGFloat = 11
+
+    private var ringQuota: QuotaPeriod? {
+        guard AppSettings.isUsageEnabled else { return nil }
+        return Self.collapsedRingUsage(
+            provider: ringProvider,
+            claudeUsage: usageService.currentUsage,
+            codexSessionUsage: codexUsageService.currentUsage,
+            codexWeeklyUsage: codexUsageService.currentWeeklyUsage
+        )
+    }
+
+    private var readoutBudget: BudgetStatus? {
+        showSpend ? budgetTracker.status : nil
+    }
+
+    private var readoutResetText: String? {
+        showResetTime ? ringQuota?.formattedResetTime : nil
+    }
+
+    private var hasCollapsedReadout: Bool {
+        readoutBudget != nil || readoutResetText != nil
+    }
+
+    private var readoutSide: NotchSide? {
+        if leftContent == .ring { return .left }
+        if rightContent == .ring { return .right }
+        return nil
+    }
+
+    /// Outward shift shared by the ring and the readout, without the hover bump
+    /// so the hit rect does not change while the cursor is over it.
+    private var ringOffsetMagnitude: CGFloat {
+        sideWidth / 4 + cornerRadiusInsets.closed.top
+    }
+
+    /// Width the ring slot needs beyond its normal share to fit the readout.
+    private var readoutExtraWidth: CGFloat {
+        guard hasCollapsedReadout, readoutWidth > 0 else { return 0 }
+        let contentWidth = usageRingPercentage != nil
+            ? readoutWidth + Self.readoutSpacing + sideWidth
+            : readoutWidth
+        return max(0, contentWidth + ringOffsetMagnitude - sideWidth)
+    }
+
+    private var collapsedExtraWidth: (left: CGFloat, right: CGFloat) {
+        switch readoutSide {
+        case .left: (readoutExtraWidth, 0)
+        case .right: (0, readoutExtraWidth)
+        case nil: (0, 0)
+        }
+    }
+
+    /// Keeps the notch cut-out over the physical notch when one side is wider.
+    private var collapsedContentOffsetX: CGFloat {
+        guard !isExpanded else { return 0 }
+        let extra = collapsedExtraWidth
+        return (extra.right - extra.left) / 2
+    }
+
+    private func paceColor(for pace: BudgetPace) -> Color {
+        switch pace {
+        case .under: TerminalColors.green
+        case .ahead: TerminalColors.amber
+        case .over: TerminalColors.red
+        }
+    }
+
+    private var collapsedReadout: some View {
+        // The countdown is derived from the current time, so it needs its own tick.
+        TimelineView(.periodic(from: .now, by: 30)) { _ in
+            HStack(spacing: Self.readoutSpacing) {
+                if let status = readoutBudget {
+                    Text("\(BudgetFormatter.usd(status.spentUSD)) / \(BudgetFormatter.usdRounded(status.limitUSD))")
+                        .foregroundColor(paceColor(for: status.pace))
+                }
+                if let reset = readoutResetText {
+                    Text(reset)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+            .font(.system(size: Self.readoutFontSize, weight: .medium).monospacedDigit())
+            .lineLimit(1)
+            .fixedSize()
+        }
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            readoutWidth = width
+        }
     }
 
     private var compactContentWidth: CGFloat {
@@ -620,6 +720,7 @@ struct NotchContentView: View {
                 : (panelManager.isCollapsedHovered ? .black.opacity(0.3) : .clear),
             radius: 6
         )
+        .offset(x: collapsedContentOffsetX)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(panelAnimation, value: isExpanded)
         .animation(.easeInOut(duration: 0.18), value: collapsedMode)
@@ -659,6 +760,9 @@ struct NotchContentView: View {
         .onChange(of: isCollapsedRingVisible) { _, _ in
             panelManager.refreshIdleMode()
         }
+        .onChange(of: collapsedExtraWidth.left) { _, _ in syncCollapsedExtraWidth() }
+        .onChange(of: collapsedExtraWidth.right) { _, _ in syncCollapsedExtraWidth() }
+        .onAppear(perform: syncCollapsedExtraWidth)
     }
 
     @ViewBuilder
@@ -846,24 +950,35 @@ struct NotchContentView: View {
 
     @ViewBuilder
     private func ringSlot(side: NotchSide) -> some View {
-        if let usageRingPercentage, !isLaunchWaveActive {
-            UsageRingView(percentage: usageRingPercentage, isStale: ringIsStale)
-                .opacity(collapsedHeaderSpriteVisuals.opacity)
-                .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
-                .frame(width: sideWidth)
-                .contentShape(Rectangle())
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { _ in
-                            guard !isExpanded else { return }
-                            isActivityCollapsed = false
-                            usageDetailProvider = ringProvider
-                            showingUsageDetail = true
-                            panelManager.expand()
-                        }
-                )
-                .scaleEffect(collapsedHeaderSpriteScale, anchor: .bottom)
-                .offset(x: ringOffsetX(side: side), y: collapsedUsageRingOffsetY)
+        if usageRingPercentage != nil || hasCollapsedReadout, !isLaunchWaveActive {
+            HStack(spacing: Self.readoutSpacing) {
+                if side == .left, hasCollapsedReadout {
+                    collapsedReadout
+                }
+                if let usageRingPercentage {
+                    UsageRingView(percentage: usageRingPercentage, isStale: ringIsStale)
+                        .frame(width: sideWidth)
+                }
+                if side == .right, hasCollapsedReadout {
+                    collapsedReadout
+                }
+            }
+            .opacity(collapsedHeaderSpriteVisuals.opacity)
+            .animation(collapsedHeaderSpriteVisibilityAnimation, value: isExpanded)
+            .frame(width: sideWidth + readoutExtraWidth, alignment: side == .left ? .trailing : .leading)
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !isExpanded else { return }
+                        isActivityCollapsed = false
+                        usageDetailProvider = ringProvider
+                        showingUsageDetail = true
+                        panelManager.expand()
+                    }
+            )
+            .scaleEffect(collapsedHeaderSpriteScale, anchor: .bottom)
+            .offset(x: ringOffsetX(side: side), y: collapsedUsageRingOffsetY)
         } else {
             Color.clear.frame(width: sideWidth)
         }
@@ -889,6 +1004,11 @@ struct NotchContentView: View {
         } else {
             Color.clear.frame(width: sideWidth)
         }
+    }
+
+    private func syncCollapsedExtraWidth() {
+        let extra = collapsedExtraWidth
+        panelManager.setCollapsedExtraWidth(left: extra.left, right: extra.right)
     }
 
     private func startSpriteHandoff(for expanded: Bool, keepsGrassIslandRendered: Bool) {
