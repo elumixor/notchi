@@ -1,3 +1,40 @@
+# Notchi (personal fork)
+
+A fork of [sk-ruban/notchi](https://github.com/sk-ruban/notchi) with a menu bar
+readout added on top of the notch companion.
+
+## What this fork adds
+
+- **Menu bar budget.** A monthly dollar limit that no API exposes — a work
+  account with a fixed allowance, for example — tracked from the cost computed
+  out of the local Claude Code session logs. Green under an even burn, orange
+  ahead of it, red once the limit is gone.
+- **Manual calibration.** The real balance cannot be read, so `Set Current
+  Spend…` anchors it to whatever the provider reports; usage from that moment on
+  is added to the anchor. Calibration is exact to the minute, not the day.
+- **Budget detail in the menu.** Spend against limit, where an even burn would
+  have been by now, average per day, projected period total, and what is left
+  per remaining day.
+- **Session reset visibility.** The five-hour subscription window's remaining
+  time sits in the menu bar, and a notification fires when it rolls over so a
+  paused session can be picked up the moment tokens return. A second
+  notification warns at 90% of the window.
+
+Everything is configured from the menu bar item. Auto-updates are disabled so
+upstream releases do not replace this build.
+
+### Install
+
+```sh
+./scripts/install.sh
+```
+
+This builds Release and replaces `/Applications/Notchi.app`. The fork keeps the
+upstream bundle identifier, so it reuses the same preferences and hooks and only
+one of the two can run at a time.
+
+---
+
 # Notchi
 
 A macOS notch companion that reacts to Claude Code and Codex activity in real-time.

@@ -44,6 +44,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppSettings.registerDefaults()
+        BudgetSettings.registerDefaults()
+        SessionResetNotifier.registerDefaults()
+        MenuBarController.registerDefaults()
         guard !isRunningTests else { return }
 
         NSApplication.shared.setActivationPolicy(.accessory)
@@ -54,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
         observePanelExpansionChanges()
         observeWakeNotifications()
         startProviderServices()
+        MenuBarController.shared.start()
         startUpdater()
     }
 
@@ -83,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate, SP
         removeMinimizeShortcutGuard()
         globalShortcutService.stop()
         integrationCoordinator.stop()
+        MenuBarController.shared.stop()
         ClaudeUsageService.shared.stopPolling()
     }
 
