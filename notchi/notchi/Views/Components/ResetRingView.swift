@@ -14,10 +14,12 @@ struct ResetRingView: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.white.opacity(0.7), lineWidth: lineWidth)
+                .stroke(Color.white.opacity(0.18), lineWidth: lineWidth)
+            // The lit arc is the time still left; it always ends at the top and
+            // shrinks back towards it as the reset approaches.
             Circle()
-                .trim(from: 0, to: clamped)
-                .stroke(Color.white.opacity(0.18), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .trim(from: 1 - clamped, to: 1)
+                .stroke(Color.white.opacity(0.75), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             Text(label)
                 .font(.system(size: diameter * 0.36, weight: .semibold).monospacedDigit())
